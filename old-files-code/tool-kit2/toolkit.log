@@ -1,0 +1,306 @@
+2022/08/12 22:05:52 INFO
+2022/08/12 22:06:00 The Toolkit log file was successfully created in C:\Users\jamie\git\msae-tool\tool-kit\toolkit.log
+20220812 22:09:44  INFO
+2022/08/12 22:17:24 INFO: The Toolkit log file was successfully created in C:\Users\jamie\git\msae-tool\tool-kit\toolkit.log
+2022/08/12 22:18:10 INFO: The property 'ForeColor' cannot be found on this object. Verify that the property exists and can be set. The term 'Write-Log' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again. The property 'ForeColor' cannot be found on this object. Verify that the property exists and can be set. The term 'Write-Log' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again. The term 'Write-Log' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again. The file 'C:\Users\jamie\git\msae-tool\tool-kit\toolkit.log' already exists.
+2022/08/12 22:21:23 INFO: The Tool Kit log already exists
+20220812 22:22:27 INFO: The Tool Kit log already exists
+20220812 22:23:04 INFO: The Tool Kit log already exists
+20220812 22:24:30 INFO: The Tool Kit log already exists
+20220812 22:24:30 INFO: The username of the operator is System.Windows.Forms.Label, Text: jamie.Text
+20220812 22:26:17 INFO: The Tool Kit log already exists
+20220812 22:26:17 INFO: The username of the operator is System.Windows.Forms.Label, Text: jamie.Text
+20220812 22:27:30 INFO: The Tool Kit log already exists
+20220812 22:27:30 INFO: The username of the operator is System.Windows.Forms.Label, Text: jamie.Text
+20220812 22:28:37 INFO: The Tool Kit log already exists
+20220812 22:28:37 INFO: The username of the operator is System.Windows.Forms.Label, Text: jamie.Text
+20220812 22:28:37 INFO
+20220812 22:28:59 INFO: The Tool Kit log already exists
+20220812 22:28:59 INFO: The username of the operator is System.Windows.Forms.Label, Text: jamie.Text
+20220812 22:28:59 INFO: The computer name is System.Windows.Forms.Label, Text: SURFACE.Text
+20220812 22:30:46 INFO: The Tool Kit log already exists
+20220812 22:30:46 INFO: The username executing this tool is jamie
+20220812 22:30:46 INFO: The computer name executing this tool is SURFACE
+20220812 22:33:23 INFO: The Tool Kit log already exists
+20220812 22:33:23 INFO: The username executing this tool is 'jamie'
+20220812 22:33:23 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:33:25 INFO: The domain is System.Windows.Forms.Label, Text: WORKGROUP.Text
+20220812 22:33:58 INFO: The Tool Kit log already exists
+20220812 22:33:58 INFO: The username executing this tool is 'jamie'
+20220812 22:33:58 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:33:59 INFO: The domain is WORKGROUP
+20220812 22:34:25 INFO: The Tool Kit log already exists
+20220812 22:34:25 INFO: The username executing this tool is 'jamie'
+20220812 22:34:25 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:34:27 INFO: The domain is WORKGROUP
+20220812 22:35:00 INFO: The Tool Kit log already exists
+20220812 22:35:00 INFO: The username executing this tool is 'jamie'
+20220812 22:35:00 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:35:02 INFO: The domain is WORKGROUP
+20220812 22:37:54 INFO: The Tool Kit log already exists
+20220812 22:37:54 INFO: The username executing this tool is 'jamie'
+20220812 22:37:54 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:37:55 INFO: The domain is 'WORKGROUP'
+20220812 22:38:26 INFO: The Tool Kit log already exists
+20220812 22:38:26 INFO: The username executing this tool is 'jamie'
+20220812 22:38:26 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:38:27 INFO: The domain is 'WORKGROUP'
+20220812 22:38:38 ERROR: The file 'C:\Users\jamie\git\msae-tool\tool-kit\toolkit.log' already exists.
+20220812 22:39:24 ERROR: The file 'C:\Users\jamie\git\msae-tool\tool-kit\toolkit.log' already exists.
+20220812 22:39:45 INFO: The Tool Kit log already exists
+20220812 22:39:45 INFO: The username executing this tool is 'jamie'
+20220812 22:39:45 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:39:47 INFO: The domain is 'WORKGROUP'
+20220812 22:46:00 INFO: The Tool Kit log already exists
+20220812 22:46:00 INFO: The username executing this tool is 'jamie'
+20220812 22:46:00 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:46:02 INFO: The domain is 'WORKGROUP'
+20220812 22:46:02 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 22:46:02 INFO: The Tool Kit log already exists
+20220812 22:46:02 INFO: The username executing this tool is 'jamie'
+20220812 22:46:02 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:46:03 INFO: The domain is 'WORKGROUP'
+20220812 22:46:03 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 22:46:16 INFO: The Tool Kit log already exists
+20220812 22:46:16 INFO: The username executing this tool is 'jamie'
+20220812 22:46:16 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:46:18 INFO: The domain is 'WORKGROUP'
+20220812 22:46:18 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 22:51:31 INFO: The Tool Kit log already exists
+20220812 22:51:31 INFO: The username executing this tool is 'jamie'
+20220812 22:51:31 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:51:32 INFO: The domain is 'WORKGROUP'
+20220812 22:51:32 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 22:52:17 INFO: The Tool Kit log already exists
+20220812 22:52:17 INFO: The username executing this tool is 'jamie'
+20220812 22:52:17 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:52:19 INFO: The domain is 'WORKGROUP'
+20220812 22:52:19 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 22:53:14 INFO: The Tool Kit log already exists
+20220812 22:53:14 INFO: The username executing this tool is 'jamie'
+20220812 22:53:14 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:53:16 INFO: The domain is 'WORKGROUP'
+20220812 22:53:16 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 22:53:47 INFO: The Tool Kit log already exists
+20220812 22:53:47 INFO: The username executing this tool is 'jamie'
+20220812 22:53:47 INFO: The computer name executing this tool is 'SURFACE'
+20220812 22:53:48 INFO: The domain is 'WORKGROUP'
+20220812 22:53:49 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:05:44 INFO: The Tool Kit log already exists
+20220812 23:05:44 INFO: The username executing this tool is 'jamie'
+20220812 23:05:44 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:05:46 INFO: The domain is 'WORKGROUP'
+20220812 23:05:46 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:06:09 INFO: The Tool Kit log already exists
+20220812 23:06:09 INFO: The username executing this tool is 'jamie'
+20220812 23:06:09 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:06:11 INFO: The domain is 'WORKGROUP'
+20220812 23:06:11 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:06:32 INFO: The Tool Kit log already exists
+20220812 23:06:32 INFO: The username executing this tool is 'jamie'
+20220812 23:06:32 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:06:33 INFO: The domain is 'WORKGROUP'
+20220812 23:06:33 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:06:59 INFO: The Tool Kit log already exists
+20220812 23:06:59 INFO: The username executing this tool is 'jamie'
+20220812 23:06:59 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:07:00 INFO: The domain is 'WORKGROUP'
+20220812 23:07:00 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:09:48 INFO: The Tool Kit log already exists
+20220812 23:09:48 INFO: The username executing this tool is 'jamie'
+20220812 23:09:48 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:09:50 INFO: The domain is 'WORKGROUP'
+20220812 23:09:50 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:10:44 INFO: The Tool Kit log already exists
+20220812 23:10:44 INFO: The username executing this tool is 'jamie'
+20220812 23:10:44 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:10:46 INFO: The domain is 'WORKGROUP'
+20220812 23:10:46 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:14:59 INFO: The Tool Kit log already exists
+20220812 23:14:59 INFO: The username executing this tool is 'jamie'
+20220812 23:14:59 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:15:00 INFO: The domain is 'WORKGROUP'
+20220812 23:15:00 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:17:35 INFO: The Tool Kit log already exists
+20220812 23:17:35 INFO: The username executing this tool is 'jamie'
+20220812 23:17:35 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:17:37 INFO: The domain is 'WORKGROUP'
+20220812 23:17:37 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:19:31 INFO: The Tool Kit log already exists
+20220812 23:19:31 INFO: The username executing this tool is 'jamie'
+20220812 23:19:31 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:19:32 INFO: The domain is 'WORKGROUP'
+20220812 23:19:32 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:20:38 INFO: The Tool Kit log already exists
+20220812 23:20:38 INFO: The username executing this tool is 'jamie'
+20220812 23:20:38 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:20:40 INFO: The domain is 'WORKGROUP'
+20220812 23:20:40 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:24:41 INFO: The Tool Kit log already exists
+20220812 23:24:41 INFO: The username executing this tool is 'jamie'
+20220812 23:24:41 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:24:43 INFO: The domain is 'WORKGROUP'
+20220812 23:24:43 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:24:57 INFO: The Tool Kit log already exists
+20220812 23:24:57 INFO: The username executing this tool is 'jamie'
+20220812 23:24:57 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:24:58 INFO: The domain is 'WORKGROUP'
+20220812 23:24:58 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:25:08 INFO: The Tool Kit log already exists
+20220812 23:25:08 INFO: The username executing this tool is 'jamie'
+20220812 23:25:08 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:25:09 INFO: The domain is 'WORKGROUP'
+20220812 23:25:09 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:26:05 INFO: The Tool Kit log already exists
+20220812 23:26:05 INFO: The username executing this tool is 'jamie'
+20220812 23:26:05 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:26:06 INFO: The domain is 'WORKGROUP'
+20220812 23:26:06 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:27:27 INFO: The Tool Kit log already exists
+20220812 23:27:27 INFO: The username executing this tool is 'jamie'
+20220812 23:27:27 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:27:28 INFO: The domain is 'WORKGROUP'
+20220812 23:27:28 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:38:36 INFO: The Tool Kit log already exists
+20220812 23:38:36 INFO: The username executing this tool is 'jamie'
+20220812 23:38:36 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:38:37 INFO: The domain is 'WORKGROUP'
+20220812 23:38:37 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:39:15 INFO: The Tool Kit log already exists
+20220812 23:39:15 INFO: The username executing this tool is 'jamie'
+20220812 23:39:15 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:39:16 INFO: The domain is 'WORKGROUP'
+20220812 23:39:16 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:39:37 INFO: The Tool Kit log already exists
+20220812 23:39:37 INFO: The username executing this tool is 'jamie'
+20220812 23:39:37 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:39:38 INFO: The domain is 'WORKGROUP'
+20220812 23:39:38 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:40:02 INFO: The Tool Kit log already exists
+20220812 23:40:02 INFO: The username executing this tool is 'jamie'
+20220812 23:40:02 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:40:04 INFO: The domain is 'WORKGROUP'
+20220812 23:40:04 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:40:29 INFO: The Tool Kit log already exists
+20220812 23:40:29 INFO: The username executing this tool is 'jamie'
+20220812 23:40:29 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:40:30 INFO: The domain is 'WORKGROUP'
+20220812 23:40:30 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:40:59 INFO: The Tool Kit log already exists
+20220812 23:40:59 INFO: The username executing this tool is 'jamie'
+20220812 23:40:59 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:41:00 INFO: The domain is 'WORKGROUP'
+20220812 23:41:01 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:45:53 INFO: The Tool Kit log already exists
+20220812 23:45:53 INFO: The username executing this tool is 'jamie'
+20220812 23:45:53 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:45:55 INFO: The domain is 'WORKGROUP'
+20220812 23:45:55 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:46:36 INFO: The Tool Kit log already exists
+20220812 23:46:36 INFO: The username executing this tool is 'jamie'
+20220812 23:46:36 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:46:37 INFO: The domain is 'WORKGROUP'
+20220812 23:46:37 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:46:54 INFO: The Tool Kit log already exists
+20220812 23:46:54 INFO: The username executing this tool is 'jamie'
+20220812 23:46:54 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:46:56 INFO: The domain is 'WORKGROUP'
+20220812 23:46:56 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:53:27 INFO: The Tool Kit log already exists
+20220812 23:53:27 INFO: The username executing this tool is 'jamie'
+20220812 23:53:27 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:53:29 INFO: The domain is 'WORKGROUP'
+20220812 23:53:29 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:54:45 INFO: The Tool Kit log already exists
+20220812 23:54:45 INFO: The username executing this tool is 'jamie'
+20220812 23:54:45 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:54:46 INFO: The domain is 'WORKGROUP'
+20220812 23:54:46 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:03 INFO: The Tool Kit log already exists
+20220812 23:55:03 INFO: The username executing this tool is 'jamie'
+20220812 23:55:03 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:04 INFO: The domain is 'WORKGROUP'
+20220812 23:55:04 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:31 INFO: The Tool Kit log already exists
+20220812 23:55:31 INFO: The username executing this tool is 'jamie'
+20220812 23:55:31 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:33 INFO: The domain is 'WORKGROUP'
+20220812 23:55:33 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:33 INFO: The Tool Kit log already exists
+20220812 23:55:33 INFO: The username executing this tool is 'jamie'
+20220812 23:55:33 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:34 INFO: The domain is 'WORKGROUP'
+20220812 23:55:34 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:37 INFO: The Tool Kit log already exists
+20220812 23:55:37 INFO: The username executing this tool is 'jamie'
+20220812 23:55:37 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:39 INFO: The domain is 'WORKGROUP'
+20220812 23:55:39 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:41 INFO: The Tool Kit log already exists
+20220812 23:55:41 INFO: The username executing this tool is 'jamie'
+20220812 23:55:41 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:42 INFO: The domain is 'WORKGROUP'
+20220812 23:55:42 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:44 INFO: The Tool Kit log already exists
+20220812 23:55:44 INFO: The username executing this tool is 'jamie'
+20220812 23:55:44 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:46 INFO: The domain is 'WORKGROUP'
+20220812 23:55:46 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:48 INFO: The Tool Kit log already exists
+20220812 23:55:48 INFO: The username executing this tool is 'jamie'
+20220812 23:55:48 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:50 INFO: The domain is 'WORKGROUP'
+20220812 23:55:50 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:50 INFO: The Tool Kit log already exists
+20220812 23:55:50 INFO: The username executing this tool is 'jamie'
+20220812 23:55:50 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:51 INFO: The domain is 'WORKGROUP'
+20220812 23:55:51 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:51 INFO: The Tool Kit log already exists
+20220812 23:55:51 INFO: The username executing this tool is 'jamie'
+20220812 23:55:51 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:53 INFO: The domain is 'WORKGROUP'
+20220812 23:55:53 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220812 23:55:55 INFO: The Tool Kit log already exists
+20220812 23:55:55 INFO: The username executing this tool is 'jamie'
+20220812 23:55:55 INFO: The computer name executing this tool is 'SURFACE'
+20220812 23:55:56 INFO: The domain is 'WORKGROUP'
+20220812 23:55:56 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 09:13:49 INFO: The Tool Kit log already exists
+20220813 09:13:49 INFO: The username executing this tool is 'jamie'
+20220813 09:13:49 INFO: The computer name executing this tool is 'SURFACE'
+20220813 09:13:51 INFO: The domain is 'WORKGROUP'
+20220813 09:13:51 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 09:14:19 INFO: The Tool Kit log already exists
+20220813 09:14:19 INFO: The username executing this tool is 'jamie'
+20220813 09:14:19 INFO: The computer name executing this tool is 'SURFACE'
+20220813 09:14:20 INFO: The domain is 'WORKGROUP'
+20220813 09:14:20 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 09:14:38 INFO: The Tool Kit log already exists
+20220813 09:14:38 INFO: The username executing this tool is 'jamie'
+20220813 09:14:38 INFO: The computer name executing this tool is 'SURFACE'
+20220813 09:14:40 INFO: The domain is 'WORKGROUP'
+20220813 09:14:40 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 09:17:40 INFO: The Tool Kit log already exists
+20220813 09:17:40 INFO: The username executing this tool is 'jamie'
+20220813 09:17:40 INFO: The computer name executing this tool is 'SURFACE'
+20220813 09:17:42 INFO: The domain is 'WORKGROUP'
+20220813 09:17:42 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 09:18:54 INFO: The Tool Kit log already exists
+20220813 09:18:54 INFO: The username executing this tool is 'jamie'
+20220813 09:18:54 INFO: The computer name executing this tool is 'SURFACE'
+20220813 09:18:56 INFO: The domain is 'WORKGROUP'
+20220813 09:18:56 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 09:20:03 INFO: The Tool Kit log already exists
+20220813 09:20:03 INFO: The username executing this tool is 'jamie'
+20220813 09:20:03 INFO: The computer name executing this tool is 'SURFACE'
+20220813 09:20:04 INFO: The domain is 'WORKGROUP'
+20220813 09:20:04 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
+20220813 11:58:17 INFO: The Tool Kit log already exists
+20220813 11:58:17 INFO: The username executing this tool is 'jamie'
+20220813 11:58:17 INFO: The computer name executing this tool is 'SURFACE'
+20220813 11:58:18 INFO: The domain is 'WORKGROUP'
+20220813 11:58:18 ERROR: The tool was run on a non-member server. Run this tool on a member-server.
