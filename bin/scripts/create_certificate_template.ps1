@@ -50,7 +50,7 @@ try {
             -ForestDn $ForestDistinguishedName
 
         if($ResultsSetAutoenroll){
-            Write-Host "Successfully granted $AutoEnrollComputerSecurityGroup autoenrollment permissions on  $TemplateComputer" -ForegroundColor Green
+            Write-Host "Successfully granted $AutoEnrollComputerSecurityGroup autoenrollment permissions on $TemplateComputer" -ForegroundColor Green
         }
     }
 }

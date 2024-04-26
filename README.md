@@ -36,6 +36,31 @@ Generates Keytab and Krb5.conf files based Active Directory, Policy Server, and 
 
 Create a new certificate template based on a Computer or User context.
 
+## Getting Started
+
+1. Launch the toolkit
+    ```pwsh
+    .\$ScriptHome\toolkit.ps1
+    ```
+
+1. Enter a selection number at the main menu.
+    ```pwsh
+    Welcome to the Keyfactor Delivery MSAE PowerShell Toolbox! Select one of the tools below to get started. To get more in
+    formation about each tool, select the README.
+
+    Choice   Title                          Description                                                                   
+    ------   -----                          -----------                                                                   
+    1        Create Kerberos Files          Generate Keytab and Krb5.conf files based Active Directory, Policy Server,    
+                                            and Service Account values.                                                   
+    2        Create Certificate Template    Clone an existing template or create a new certificate template based on a    
+                                            Computer or User context.                                                     
+
+    Selection: 2
+    ```
+
+1. Complete the prompts as the appear in the console and enter 'quit' or Crtl-C when you wish to exit.
+
+
 ## Logging
 
 * All actions are written to a 'main.log' file located in the toolkit root directory 
