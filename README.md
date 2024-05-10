@@ -39,7 +39,12 @@ Create a new certificate template based on a Computer or User context.
 ## Getting Started
 1. Open a Powershell console as Admin on a Windows Server (Domain Controller or Member Server)
 
-1. Navigate to the msae-toolkit directory and launch the main script.
+1. Navigate to the msae-toolkit directory and open the configuration file. Populate any known values, save, and close.
+    ```pwsh
+    notepad .\main.conf
+    ```
+
+1. Launch the main script.
     ```pwsh
     .\toolkit.ps1
     ```
