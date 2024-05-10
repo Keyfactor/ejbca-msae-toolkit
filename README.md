@@ -37,10 +37,11 @@ Generates Keytab and Krb5.conf files based Active Directory, Policy Server, and 
 Create a new certificate template based on a Computer or User context.
 
 ## Getting Started
+1. Open a Powershell console as Admin on a Windows Server (Domain Controller or Member Server)
 
-1. Launch the toolkit
+1. Navigate to the msae-toolkit directory and launch the main script.
     ```pwsh
-    .\$ScriptHome\toolkit.ps1
+    .\toolkit.ps1
     ```
 
 1. Enter a selection number at the main menu.
