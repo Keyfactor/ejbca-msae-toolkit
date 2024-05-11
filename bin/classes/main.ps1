@@ -6,7 +6,7 @@ class WriteLog {
     [String]$LogFile = "main.log"
     [String]$LogLevel = "INFO"
     [String]$Message
-    [String]$DefaultColor = "Gray"
+    [String]$DefaultColor = "Yellow"
     [Object]$ConsoleColors = @{
         Warning = "Yellow"
     }
@@ -72,13 +72,17 @@ class WriteLog {
         $OutputConsole = $this.DefaultConsole
         $this.WriteToLog($Messages,"INFO",$this.DefaultColor,$OutputConsole)
     }
-    Info([String[]]$Messages, [Bool]$Console){
+    Info([String[]]$Messages, [Boolean]$Console){
         $OutputConsole = $Console
         $this.WriteToLog($Messages,"INFO",$this.DefaultColor,$OutputConsole)
     }
     Warn([String[]]$Messages){
         $OutputConsole = $this.DefaultConsole
         $this.WriteToLog($Messages,"WARN",$this.DefaultColor,$OutputConsole)
+    }
+    Warn([String[]]$Messages, [Boolean]$Console){
+        $OutputConsole = $Console
+        $this.WriteToLog($Messages,"WARN","Yellow",$OutputConsole)
     }
     Debug([String[]]$Messages){
         $OutputConsole = $this.DefaultConsole

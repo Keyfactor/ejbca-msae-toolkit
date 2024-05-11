@@ -20,7 +20,7 @@ Clear-Host
 $Global:ToolBoxConfig = [PSCustomObject]@{
     ScriptHome = $PSScriptRoot
     ScriptExit = $false
-    TestingMode = $false
+    TestingMode = $true
     DomainFqdn = [String]
     DomainDn = [String]
     InteractiveMode = $false
@@ -43,6 +43,8 @@ $Global:ToolBoxConfig = [PSCustomObject]@{
         "DnsClient",
         "ActiveDirectory"
     )
+    DefaultServiceAccountExpiration = 365
+    KeytabEncryptionTypes = "AES256"
 }
 
 try {
@@ -74,18 +76,23 @@ try {
 
     # Main Menu
     do {
+
         Write-Host $Main.Description -ForegroundColor Blue
         Write-Host ($Tools|Format-Table @{e="Choice";w=8;a="l"}, @{e="Title";w=30}, @{e="Description"} -Wrap|Out-String) `
             -ForegroundColor Blue `
             -NoNewline
 
-        $ToolSelection = Read-Host "Selection"
+        #$ToolSelection = Read-Host "Selection"
+        $ToolSelection = 1
         if($ToolSelection -ne "quit" -and $ToolSelection){
             # Load tool config and script based on selection
+            #Clear-Host
             $Global:ToolCurrent = $Tools.where({$_.Choice -eq $ToolSelection})
             . (Join-Path $ToolBoxConfig.Tools $ToolCurrent.Script -ErrorAction Stop)
         }
-        Write-Host "`n"
+        #Write-Host "`n"
+        #Clear-Host
+
     }
     until($ToolSelection -eq "quit" -or $ToolBoxConfig.ScriptExit)
 

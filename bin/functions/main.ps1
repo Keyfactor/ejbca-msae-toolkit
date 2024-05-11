@@ -1,6 +1,34 @@
 
 $LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.LogFiles.Main)
 
+function Convert-PromptReponseBool {
+    <#
+    .Synopsis
+        Convert message box response to boolean
+    .Description
+        Message boxes return integer values. This function converts certain respones, like Yes/No, to True/False. 
+        This is helpful when evaluting responses in condition statements.
+
+        Refer to the following for the available DialogResult Enums:
+        https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.dialogresult?view=windowsdesktop-8.0
+    .Parameter Value
+        Integer to convert with Switch condition
+    .Example
+        $Answer | Convert-PromptResponseBool  
+    #>
+    param(
+        [Parameter(Mandatory=$true)][int]$Value
+    )
+    process {
+        switch ([int]$Value) {
+            1 {$true}
+            2 {$false}
+            6 {$true}
+            7 {$false}
+        }
+    }
+} 
+
 function Get-SecurityGroups {
     <#
     .Description

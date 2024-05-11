@@ -3,10 +3,12 @@ $LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.L
 
 function Read-HostPrompt{
     param(
-        [Parameter(Mandatory=$true)][string]$Message,
-        [Parameter(Mandatory=$false)][string]$Color = "Gray",
-        [Parameter(Mandatory=$false)][string]$Default,
-        [Parameter(Mandatory=$false)][switch]$NoInput
+        [Parameter(Mandatory=$true)][String]$Message,
+        [Parameter(Mandatory=$false)][String]$Color = "Gray",
+        [Parameter(Mandatory=$false)][String]$Default,
+        [Parameter(Mandatory=$false)][Switch]$NoInput,
+        [Parameter(Mandatory=$false)][Switch]$NewLine
+
     )
 
     if($NoInputRequired){
@@ -15,8 +17,14 @@ function Read-HostPrompt{
     else{
         while ($true) {
             if($NoInput) {
-                Write-Host "$($Message)" -ForegroundColor $Color -NoNewline; $Host.UI.ReadLine()
-                return
+                if($NewLine){
+                    Write-Host "$($Message):" -ForegroundColor $Color
+                }
+                else {
+                    Write-Host "$($Message):" -ForegroundColor $Color -NoNewline;
+                }
+                $Response = $Host.UI.ReadLine()
+                return $Response
             }	
             elseif($Default){
                 $Response = Write-Host "$Message `n[Default: $($Default)]: " -ForegroundColor $Color -NoNewline
@@ -48,7 +56,7 @@ function Read-PromptSelection{
     $Selections | ForEach-Object {$Index = 1}{
         [pscustomobject]@{N = $Index; S = "-"; Description = "$_"}; $Index++
     })
-    Write-Host $Message -ForegroundColor $Color -NoNewline 
+    Write-Host "`n$Message" -ForegroundColor $Color -NoNewline 
     Write-Host ($SelectionArray | Format-Table -HideTableHeaders -AutoSize | Out-String) -ForegroundColor $Color -NoNewline
 
     while ($true) {
@@ -64,28 +72,4 @@ function Read-PromptSelection{
             Write-Host "`nInvalid selection. Enter a number between 1-$($SelectionArray.Count)." -ForegroundColor Yellow
         }
     }
-}
-
-function Get-ConfigDefault {
-    param (
-        [Parameter(Mandatory)][String]$Config,
-        [Parameter(Mandatory)][String]$Prompt,
-        [Parameter(Mandatory=$false)][Switch]$Mask
-    )
-    $LoggerFunctions.ChangeLogger("KF.Toolkit.Function.GetConfigDefault")
-
-    # Load configuration variable value and test if empty
-    $ConfigValue = Get-Variable $Config -ValueOnly -ErrorAction SilentlyContinue
-    if(-not $ConfigValue){
-        $ConfigValue = Read-HostPrompt -Message $Prompt
-    }
-    else {
-        if($Mask){
-            $LoggerFunctions.Info("Using $($Config)=<hidden> from configuration file.") 
-        }
-        else {
-            $LoggerFunctions.Info("Using $($Config)=$($ConfigValue) from configuration file.") 
-        }
-    }
-    return $ConfigValue
 }

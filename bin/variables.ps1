@@ -18,15 +18,25 @@ $Main = @{
 
 $Tools = @(
     [PSCustomObject]@{
+        Title = "Create Service Account"
+        Script = "create_service_account.ps1"
+        Readme = [String]
+        Description = "Create and configure a new service account to use in an MSAE integration."
+        DescriptionVerbose = (
+            "This tool creates and configures a new service account to use in an MSAE integration.",
+            "It is intended to be used in a lab or testing environment."
+        )
+    }
+    [PSCustomObject]@{
         Title = "Create Kerberos Files"
         Script = "create_kerberos_files.ps1"
-        Readme = "tool_config_wizard.txt"
+        Readme = [String]
         Description = "Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values."
     }
     [PSCustomObject]@{
         Title = "Create Certificate Template"
         Script = "create_certificate_template.ps1"
-        Readme = "tool_config_wizard.txt"
+        Readme = [String]
         Description = "Clone an existing template or create a new certificate template based on a Computer or User context."
     }
 )
