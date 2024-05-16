@@ -12,10 +12,15 @@ try {
 
             if($Value.Length){
                 Set-Variable -Name $Variable -Value $Value -Scope Global # Set all imported variables as Gloabl
-                $LoggerMain.Info("Successfully imported $($Configuration)")
+                $LoggerMain.Info("Imported '$($Configuration)' from configuration file.")
             }
             
         }
+    }
+
+    # Set log level to debug if testing
+    if($ToolBoxConfig.Testing){
+        $LogLevel = "DEBUG"
     }
 
     # Update logger level based on configuration file

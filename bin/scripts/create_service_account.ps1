@@ -1,88 +1,94 @@
-Write-Host "$($ToolCurrent.Title)`n" -ForegroundColor Blue 
-foreach($V in $ToolCurrent.DescriptionVerbose){
-    Write-Host "- $V" -ForegroundColor Blue 
+
+# Service Account
+while($true){
+    $ServiceAccount = Register-ServiceAccount `
+        -Message "Enter the name to use for creating the service account." `
+        -ServiceAccount $ServiceAccount `
+        -GetExisting:$false
+    if(-not $ServiceAccount){
+        $ServiceAccount = $null
+    } else {
+        break
+    }
 }
 
-#$ToolContinue = Read-HostPrompt "`nHit enter to continue or enter 'main' to return to the main menu" -NoInput
-if($ToolContinue -ne "main"){
-
-    try {
-        do {
-            $PolicyServerAttributes = Register-PolicyServer `
-                -Validate:$true `
-                -Alias 
-        } until (
-            ($PolicyServerAttributes -ne $false)
-        )
-
-        do {
-            $ServiceAccount = Register-ServiceAccount `
-                -ServiceAccount $ServiceAccount `
-                -CheckExisting:$false 
-        } until (
-            (-not [String]::IsNullOrEmpty($ServiceAccount))
-        )
-
-        # Get password
-        $SecureServiceAccountPassword = Register-ServiceAccountPassword `
-            -Password $ServiceAccountPassword `
-            -SecureString
-
-        # Get service account directory path
-        $ServiceAccountOrgUnit = Read-HostPrompt -Message "Enter the Organization Unit to create the Service Account in"
-        $ResultsOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($ServiceAccountOrgUnit)*'").DistinguishedName
-
-        # Present selections if more than one organization unti matches search
-        if($ResultsOrgUnitSearch.Count -gt 1){
-            $ServiceAccountPath = Read-PromptSelection `
-                -Message "Multiple organizational units matching the '$ServiceAccountOrgUnit' query were returned. Select one of the following choices:" `
-                -Selections $ResultsOrgUnitSearch
-        } else {
-            $ServiceAccountPath = $ResultsOrgUnitSearch
-        }
-
-        # Apply default expiration days
-        #if([String]::IsNullOrEmpty($ServiceAccountExpiration)){$ServiceAccountExpiration = 365} 
-        $ServiceAccountExpiration = %{if([String]::IsNullOrEmpty($ServiceAccountExpiration)){365}else{$ServiceAccountExpiration}}
-        Write-Host $ServiceAccountExpiration -ForegroundColor Yellow
-
-        # Construct attributes table for verification before creation
-        $ServiceAccountCreateObject = [PSCustomObject]@{
-            Name = $ServiceAccount
-            Expiration = (Get-Date).AddDays($ServiceAccountExpiration)
-            ServicePrincipalName = $PolicyServerAttributes.Spn 
-            Path = $ServiceAccountPath
-        }
-
-        #Write-Host "Create the service account using the following attributes:`n $($ServiceAccountCreateObject|Out-TableString)" -ForegroundColor Yellow
-        $ServiceAccountCreateConfirmation = Read-PromptSelection `
-            -Message "Create the service account using the following attributes:`n $($ServiceAccountCreateObject|Out-TableString)`n" `
-            -Selections "Yes","No"
-       
-        if($ServiceAccountCreateConfirmation|Convert-PromptReponseBool){
-
-            # Create service account
-            $ResultCreateServiceAccount = New-AdUser `
-                -Name $ServiceAccountCreateObject.Name `
-                -AccountExpirationDate $ServiceAccountCreateObject.Expiration `
-                -AccountPassword $SecureServiceAccountPassword `
-                -ServicePrincipalNames $ServiceAccountCreateObject.ServicePrincipalName `
-                -KerberosEncryptionType $ToolBoxConfig.KeytabEncryptionTypes `
-                -Path $ServiceAccountCreateObject.Path `
-                -PasswordNeverExpires:$true `
-                -Enabled:$true `
-                -PassThru
-
-        } else {
-            $ToolBoxConfig.ScriptExit = $true
-        }
-
-        Write-Host $ResultCreateServiceAccount -ForegroundColor Green
+# Policy Server
+while($true){
+    $PolicyServerAttributes = Register-PolicyServer `
+        -Validate:$true
+    if(-not $PolicyServerAttributes){
+        $PolicyServerAttributes = $null
+    } else {
+        break
     }
-    catch {
-        Write-Host $_ -ForegroundColor Yellow
-    }
-    
-    # Set service principal name 
+}
 
+# Get password
+$SecureServiceAccountPassword = Register-ServiceAccountPassword `
+    -Password $ServiceAccountPassword `
+    -SecureString
+
+# Get service account directory path
+# Continue loop until valid path is confirmed by user
+do {
+    $ServiceAccountOrgUnit = Read-HostPrompt `
+        -Message "Enter the Organization Unit to create the Service Account in"
+    $ResultsOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($ServiceAccountOrgUnit)*'").DistinguishedName
+
+    # Present selections if more than one organization unti matches search
+    if($ResultsOrgUnitSearch.Count -gt 1){
+        $ServiceAccountPath = Read-PromptSelection `
+            -Message "Multiple organizational units matching the '$ServiceAccountOrgUnit' query were returned. Select one of the following choices:" `
+            -Selections $ResultsOrgUnitSearch
+    } elseif($ResultsOrgUnitSearch.Count -eq 1){
+        $ServiceAccountPath = $ResultsOrgUnitSearch
+    } else {
+        Write-Host "No organization unit was found with the provided search string. Try again." -ForegroundColor Red
+    }
+
+} until (
+    (-not [String]::IsNullOrEmpty($ServiceAccountPath))
+)
+
+# Apply default expiration days
+$ServiceAccountExpiration = %{if([String]::IsNullOrEmpty($ServiceAccountExpiration)){365}else{$ServiceAccountExpiration}}
+
+# Construct attributes table for verification before creation
+$ServiceAccountCreateObject = [PSCustomObject]@{
+    Name = $ServiceAccount
+    Expiration = (Get-Date).AddDays($ServiceAccountExpiration)
+    ServicePrincipalName = $PolicyServerAttributes.Spn 
+    Path = $ServiceAccountPath
+}
+
+#Write-Host "Create the service account using the following attributes:`n $($ServiceAccountCreateObject|Out-TableString)" -ForegroundColor Yellow
+$ServiceAccountCreateConfirmation = Read-PromptSelection `
+    -Message "Would you like to create the service account using the following attributes:`n $($ServiceAccountCreateObject|Out-TableString)`n" `
+    -Selections "Yes","No" `
+    -ReturnInteger
+
+# Create service account
+if($ServiceAccountCreateConfirmation|Convert-PromptReponseBool){
+
+    $ResultCreateServiceAccount = New-AdUser `
+        -Name $ServiceAccount `
+        -AccountExpirationDate $ServiceAccountCreateObject.Expiration `
+        -AccountPassword $SecureServiceAccountPassword `
+        -ServicePrincipalNames $ServiceAccountCreateObject.ServicePrincipalName `
+        -KerberosEncryptionType $ToolBoxConfig.KeytabEncryptionTypes `
+        -Path $ServiceAccountCreateObject.Path `
+        -PasswordNeverExpires:$true `
+        -Enabled:$true `
+        -PassThru
+
+    if($ResultCreateServiceAccount){
+        $LoggerMain.Info(($Strings.SuccessfullyCreated -f ("service account", $ResultCreateServiceAccount)))
+        $LoggerMain.Console("Green")
+
+    } else {
+        Write-Host $_ -ForegroundColor Red
+    }
+
+} else {
+    Write-Host "Return to the main menu and select the $($ToolCurrent.Title) tool to try again." -ForegroundColor Yellow
 }

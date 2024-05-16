@@ -32,11 +32,28 @@ $Tools = @(
         Script = "create_kerberos_files.ps1"
         Readme = [String]
         Description = "Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values."
+        DescriptionVerbose = (
+            "Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values."
+        )
     }
     [PSCustomObject]@{
         Title = "Create Certificate Template"
         Script = "create_certificate_template.ps1"
         Readme = [String]
         Description = "Clone an existing template or create a new certificate template based on a Computer or User context."
+        DescriptionVerbose = (
+            "Clone an existing template or create a new certificate template based on a Computer or User context."
+        )
     }
 )
+
+
+$Strings = @{
+    GeneralException = "A general exception occurred and the tool was exited. Refer to the log for more details."
+    MessageServiceAccount = "Enter the name of the Service Account used for MSAE."
+    ObjectAvailable = "'{0}' does not exist in active directory and is available for use."
+    DoesNotExist = "'{0}' does not exist. Provide another name."
+    AlreadyExists = "'{0}' already exists. Provide another name."
+    ObjectFound = "Found {0}: {1}."
+    SuccessfullyCreated = "Successsfully created {0} '{1}'."
+}

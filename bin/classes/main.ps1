@@ -103,6 +103,10 @@ class WriteLog {
         $OutputConsole = $this.DefaultConsole
         $this.WriteToLog($Messages,"ERROR",$Color,$OutputConsole)
     }
+    Error([String[]]$Messages, [Boolean]$Console){
+        $OutputConsole = $Console
+        $this.WriteToLog($Messages,"ERROR","Red",$OutputConsole)
+    }
 
     hidden WriteToLog (
         [String[]]$Messages,

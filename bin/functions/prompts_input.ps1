@@ -10,35 +10,34 @@ function Read-HostPrompt{
         [Parameter(Mandatory=$false)][Switch]$NewLine
 
     )
-
-    if($NoInputRequired){
-        Write-Host $Message -ForegroundColor $Color -NoNewline; $Host.UI.ReadLine()
+    if($NoInput){
+        if($NewLine){
+            Write-Host $Message -ForegroundColor $Color
+        }
+        else {
+            Write-Host $Message -ForegroundColor $Color -NoNewline
+        }
+        $Response = $Host.UI.ReadLine()
+        return $Response
     }
     else{
         while ($true) {
-            if($NoInput) {
-                if($NewLine){
-                    Write-Host "$($Message):" -ForegroundColor $Color
-                }
-                else {
-                    Write-Host "$($Message):" -ForegroundColor $Color -NoNewline;
-                }
+            if($MyInvocation.BoundParameters.Keys -contains "Default"){
+                Write-Host "$Message [Default: $(if([String]::IsNullOrEmpty($Default)){"None"}else{$Default})]: " `
+                    -ForegroundColor $Color `
+                    -NoNewline
                 $Response = $Host.UI.ReadLine()
-                return $Response
-            }	
-            elseif($Default){
-                $Response = Write-Host "$Message `n[Default: $($Default)]: " -ForegroundColor $Color -NoNewline
+                $Response = ($Default,$Response)[[Bool]$Response] 
+
+            } else {
+                Write-Host "$($Message): " -ForegroundColor $Color -NoNewline
                 $Response = $Host.UI.ReadLine()
-                $Response = ($Default,$Response)[[bool]$Response] 
             }
-            else {
-                $Response = Write-Host "$($Message): " -ForegroundColor $Color -NoNewline
-                $Response = $Host.UI.ReadLine()
-            }				
-            if([string]::IsNullOrEmpty($Response)){
+
+            # validate user input
+            if([string]::IsNullOrEmpty($Response) -or ($Response -eq "None")){
                 Write-Host "No input was provided." -ForegroundColor Yellow
-            }
-            else {
+            } else {
                 return $Response
             }
         }
@@ -49,6 +48,7 @@ function Read-PromptSelection{
     param(
         [Parameter(Mandatory=$false)][string]$Message="",
         [Parameter(Mandatory=$false)][string]$Color = "Gray",
+        [Parameter(Mandatory=$false)][switch]$ReturnInteger,
         [Parameter()][string[]]$Selections
     )
 
@@ -57,13 +57,17 @@ function Read-PromptSelection{
         [pscustomobject]@{N = $Index; S = "-"; Description = "$_"}; $Index++
     })
     Write-Host "`n$Message" -ForegroundColor $Color -NoNewline 
-    Write-Host ($SelectionArray | Format-Table -HideTableHeaders -AutoSize | Out-String) -ForegroundColor $Color -NoNewline
+    Write-Host "`n$($($SelectionArray | Format-Table -HideTableHeaders -AutoSize | Out-String).Trim())" -ForegroundColor $Color #-NoNewline
 
     while ($true) {
-        Write-Host "Selection: " -NoNewline
+        Write-Host "`nSelection: " -NoNewline
         $Selection = $Host.UI.ReadLine()
         if($Selection -in 1..$SelectionArray.Count){
-            return $SelectionArray.where({$_.N -match $Selection}).Description
+            if($ReturnInteger){
+                return [int]$Selection
+            } else {
+                return $SelectionArray.where({$_.N -match $Selection}).Description
+            }
         }
         elseif($Selection -eq "quit"){
             exit
