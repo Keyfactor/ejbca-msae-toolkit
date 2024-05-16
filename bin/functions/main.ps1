@@ -1,6 +1,34 @@
 
 $LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.LogFiles.Main)
 
+function Convert-PromptReponseBool {
+    <#
+    .Synopsis
+        Convert message box response to boolean
+    .Description
+        Message boxes return integer values. This function converts certain respones, like Yes/No, to True/False. 
+        This is helpful when evaluting responses in condition statements.
+
+        Refer to the following for the available DialogResult Enums:
+        https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.dialogresult?view=windowsdesktop-8.0
+    .Parameter Value
+        Integer to convert with Switch condition
+    .Example
+        $Answer | Convert-PromptResponseBool  
+    #>
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline)][int]$Value
+    )
+    process {
+        switch ([int]$Value) {
+            1 {$true}
+            2 {$false}
+            6 {$true}
+            7 {$false}
+        }
+    }
+} 
+
 function Get-SecurityGroups {
     <#
     .Description
@@ -62,8 +90,8 @@ function Get-SecurityGroups {
             }
         }
 
-        $LoggerFunctions.Info("The primary group of $($Object.name) is: $($ObjectPrimaryGroup.distinguishedname)")
-        $LoggerFunctions.Info("$($Object.dnshostname) is a member of: $($ObjectSecurityGroups|ConvertTo-JSON)")
+        $LoggerFunctions.Info("The primary security group of Windows Server $($Object.name) is: $($ObjectPrimaryGroup.distinguishedname)")
+        $LoggerFunctions.Info("$($Object.name) is a member of the following security groups: $($ObjectSecurityGroups|ConvertTo-JSON)")
     }
     catch {
         $LoggerMain.Exception($_)
@@ -141,6 +169,26 @@ function Get-TemplateEnrollmentPermissions {
     } 
 }
 
+function Test-CertificateTemplate {
+    param(
+        [Parameter(Mandatory)][String]$DisplayName
+    )
+    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
+    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.GetCertificateTemplate"
+
+    $ConfigContext = ([ADSI]"LDAP://RootDSE").ConfigurationNamingContext 
+    $TemplateContainer = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,$ConfigContext"
+    $Template = $TemplateContainer.Children.where({$_.displayName -eq $DisplayName})
+    if($Template){
+        $LoggerFunctions.Info($Strings.AlreadyExists -f $DisplayName, $True)
+        return $true
+    } else {
+        $LoggerFunctions.Info($Strings.ObjectAvailable -f $DisplayName)
+        return $false
+    }
+
+}
+
 function New-CertificateTemplate {
     param(
         [Parameter(Mandatory)][String]$DisplayName,
@@ -212,8 +260,6 @@ function New-CertificateTemplate {
         $NewTemplate.put("pKIDefaultKeySpec","$($DuplicateTemplate.pKIDefaultKeySpec)")
 
         [void]$NewTemplate.SetInfo()
-        $LoggerFunctions.Debug("Created new template $CommonName with basic information.")
-
         
         # create properties with default values
         if($DuplicateTemplate.pKICriticalExtensions){ 
@@ -253,21 +299,20 @@ function New-CertificateTemplate {
         $NewTemplate.pKIOverlapPeriod = $DuplicateByteProps.pKIOverlapPeriod
         $NewTemplate.SetInfo()
 
-        $LoggerFunctions.Info("Created certificate template '$DisplayName'.")
+        $LoggerFunctions.Info($Strings.SuccessfullyCreated -f ("certificate template", $DisplayName))
         $LoggerFunctions.Console("Green")
         return $true
 
     }
     catch [System.Management.Automation.MethodInvocationException] {
         if($_ -match "(The object already exists)"){
-            $LoggerFunctions.Info("Template: $DisplayName already exists.")
-            $LoggerFunctions.Console("Yellow")
+            $LoggerFunctions.Info($Strings.AlreadyExists -f $DisplayName, $True)
             return $false
         }
     }
     catch {
-        Write-Host "$($MyInvocation.InvocationName): $_" -ForegroundColor Red
         $LoggerFunctions.Exception($_)
+        throw $Strings.GeneralException
     }
 }
 
@@ -285,10 +330,19 @@ function New-Keytab {
     $LoggerFunctions.Debug(
         ("$($MyInvocation.InvocationName) parameters: $($MyInvocation.BoundParameters|ConvertTo-JSON)").Trim()
     )
+
+    $Strings = @{
+        FailedTargetDomain = "A Domain value was not specified, or the wrong one was provided, for service account {0} when attempting to create to the keytab. Refer to the log for more details." 
+        FailedGeneral = "Failed to create keytab most likely due to a password that does not meet the complexity requires of the domain."
+    }
     
     try {
+        # Get domain
+        $Domain = ((Get-ADDomain).Forest) 
+
         $PassAsPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
-        $KeytabString = "ktpass -out $Outfile -mapuser $Account -kvno 0 -princ $Principal -pass $PassAsPlainText -ptype KRB5_NT_PRINCIPAL -crypto AES256-SHA1 2>&1"
+        $KeytabString = "ktpass -out $Outfile -mapuser $Account@$Domain -kvno 0 -princ $Principal -pass $PassAsPlainText -ptype KRB5_NT_PRINCIPAL -crypto AES256-SHA1 2>&1"
+        #$KeytabString = "ktpass -out $Outfile -mapuser $Account -kvno 0 -princ $Principal -pass $PassAsPlainText -ptype KRB5_NT_PRINCIPAL -crypto AES256-SHA1 2>&1"
 
         $LoggerFunctions.Debug("keytab create string: $KeytabString")
 
@@ -296,11 +350,14 @@ function New-Keytab {
         foreach($Line in $Keytab){
             if($Line -match "(Aborted)"){
                 $LoggerFunctions.Error($Line)
-                $LoggerFunctions.Error(
-                    "Failed to create keytab most likely due to a password that does not meet the complexity requires of the domain."
-                )
-            }
-            else {
+                $LoggerFunctions.Error($String.FailedGeneral)
+
+            } elseif($Line -match "(ktpass:failed getting target domain for specified user)"){
+                $ErrorString = $($Strings.FailedTargetDomain -f $Account)
+                $LoggerFunctions.Error($ErrorString)
+                Write-Error $($Strings.FailedTargetDomain -f $Account) -ErrorAction Stop
+
+            } else {
                 $LoggerFunctions.Debug($Line)
             }
         }
@@ -312,12 +369,10 @@ function New-Keytab {
             $PassAsPlainText = $null #empty clear text password after keytab creation
             return $true
         } 
-        else {
-            throw "Failed to create keytab file." 
-        }
     }
     catch {
         $LoggerFunctions.Exception($_)
+        throw $_
     }
 }
 

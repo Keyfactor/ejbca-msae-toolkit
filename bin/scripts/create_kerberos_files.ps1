@@ -1,23 +1,50 @@
-Write-Host $ToolCurrent.Title -ForegroundColor Blue 
-Write-Host -ForegroundColor Blue  @("
-- This tool will provide prompts for input and allow for different options.
-- If a value is defined in the toolkit configuration file, it will be used as the default value.
-- If a value is undefined, a prompt will appear requiring input.") 
+# create_kerberos_files
 
-Read-HostPrompt "`nHit enter to continue..." -NoInput
+# Service Account
+while($true){
+    $ServiceAccountAttributes = Register-ServiceAccount `
+        -ServiceAccount $ServiceAccount
+    if(-not $ServiceAccount){
+        $ServiceAccount = $null
+    } else {
+        $ServiceAccount = $ServiceAccountAttributes.name
+        break
+    }
+}
 
-$PolicyServerAttributes = Register-PolicyServer
-$ServiceAccountAttributes = Register-ServiceAccount $PolicyServerAttributes
-$Global:ServiceAccount = $ServiceAccountAttributes.Name
+# Service Account Password
+while($true){
+    $ServiceAccountPassword = Register-ServiceAccountPassword `
+        -Message "Enter the password for the MSAE service account. This will be used to create the keytab file to ensure the passwords match." `
+        -Password $ServiceAccountPassword 
+    if(-not $ServiceAccountPassword){
+        $ServiceAccountPassword = $null
+    } else {
+        break
+    }
+}
 
+# Policy Server
+while($true){
+    $PolicyServerAttributes = Register-PolicyServer 
+    if(-not $PolicyServerAttributes){
+        $PolicyServerAttributes = $null
+    } else {
+        break
+    }
+}
+
+# Create files
 try {
+
+    Write-Host "`nAttempting to create kerberos files..." -ForegroundColor Yellow
 
     $KeytabOutfile = "$($ToolBoxConfig.Files)\$($ServiceAccount).keytab"
     $ResultCreateKeytab = New-Keytab `
         -Account $ServiceAccount `
         -Principal $PolicyServerAttributes.UPN `
-        -Password $ServiceAccountAttributes.Password `
-        -Outfile $KeytabOutfile
+        -Password $ServiceAccountPassword `
+        -Outfile $KeytabOutfile `
 
     # Create Krb5 Configuration file
     $Krb5ConfOutfile = "$($ToolBoxConfig.Files)\$($ServiceAccount)-krb5.conf"
@@ -26,10 +53,13 @@ try {
         -Outfile $Krb5ConfOutfile
 
     if($ResultCreateKeytab -and $ResultCreateKrb5Conf){
-        Read-HostPrompt "Successfully created Keytab and Krb5 Conf file in $($ToolBoxConfig.Files). Hit enter to return to the main menu..." -NoInput -Color Green
+        Write-Host -ForegroundColor Green `
+            "Successfully created Keytab and Krb5 Conf files in directory $($ToolBoxConfig.Files)." 
     }
-    
+    else {
+        Write-Host $_ -ForegroundColor Red
+    }
 }
 catch {
-    Write-Host $Error[0] -ForegroundColor Red
+   Write-Host $Error[0] -ForegroundColor Red
 }

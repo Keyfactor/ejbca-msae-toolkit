@@ -9,6 +9,7 @@ function Get-ADUserWrapper {
     param(
         [Parameter(Mandatory)][String]$Identity
     )
+    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
     $LoggerFunctions.Logger = "KF.Toolkit.Function.GetADUserWrapper"
 
     try {
@@ -28,12 +29,12 @@ function Get-ADGroupWrapper {
         [Parameter(Mandatory)][String]$Group
     )
 
+    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
     $LoggerFunctions.ChangeLogger("MSAE.Toolkit.Function.GetADGroupWrapper")
-    $LoggerFunctions.DEBUG("Searching active directry for CN=$($Group)")
 
     try {
-        $SecurityGroup = (Get-ADGroup -Identity $Group -Properties * | Select *)
-        $LoggerFunctions.INFO("Found security group: $($Group.DistinguishedName)")
+        $AdGroup = (Get-ADGroup -Identity $Group -Properties * | Select *)
+        $LoggerFunctions.INFO("Found security group: $($AdGroup.DistinguishedName)")
         return $true
     }
     catch {
