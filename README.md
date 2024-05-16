@@ -28,6 +28,10 @@ A configuration file is provided to allow the prepoluation of MSAE values. This 
 * Leave empty configurations commented out if they do not have a value
 
 ## Tools
+### Create Service Account
+
+Create service account with the attributes required to support an MSAE integration configuration.
+
 ### Create Kerberos Files
 
 Generates Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values.
