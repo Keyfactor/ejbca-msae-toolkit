@@ -21,7 +21,6 @@ The current version of this tool has only been tested on PowerShell 5.1 and 7.1.
   * Domain Controller
   * Member Server
 
-
 ## Getting Started
 1. Open a Powershell console as Admin on a Windows Server (Domain Controller or Member Server)
 
