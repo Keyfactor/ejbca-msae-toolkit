@@ -1,32 +1,102 @@
 
-$LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.LogFiles.Main)
+# Initialize logger
+$LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.LogFiles.Main, $ToolBoxConfig.LogLevel)
 
-function Convert-PromptReponseBool {
+function Assert-DesktopMode {
+    Param (
+        [Parameter(Mandatory=$false)][Switch]$LoadAssembly
+    )
+    $NonInteractive = [Environment]::GetCommandLineArgs() | Where-Object{ $_ -like '-NonI*' }
+    $Windows = ([Environment]::OSVersion.Platform -like "Win*")
+    if ([Environment]::UserInteractive -and $Windows -and -not $NonInteractive) {
+        $LoggerMain.Info("Powershell is running in Interactive mode. Message boxes are enabled.")
+
+        if($LoadAssembly){
+            [void][Reflection.Assembly]::LoadWithPartialName("Microsoft.VisualBasic") 
+            $LoggerMain.Info("Loaded System.Reflection.Assembly: System.Windows.Forms")
+
+        }
+        return $true
+
+    }
+    $LoggerMain.Info("Powershell is running in non-Interactive mode. Message boxes are disabled.")
+    return $false
+} 
+
+function Get-KerberosTicketCache {
     <#
     .Synopsis
-        Convert message box response to boolean
+        Retrieves cached kerberose tickets
     .Description
-        Message boxes return integer values. This function converts certain respones, like Yes/No, to True/False. 
-        This is helpful when evaluting responses in condition statements.
-
-        Refer to the following for the available DialogResult Enums:
-        https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.dialogresult?view=windowsdesktop-8.0
-    .Parameter Value
-        Integer to convert with Switch condition
+        Dumps local kerberos ticket cache and returns object with results
+    .Parameter SPN
+        ServicePrincipalName to locate in the dumped tickets
     .Example
-        $Answer | Convert-PromptResponseBool  
+        "Slugify Conversion" | Convert-KFSlugify
     #>
-    param(
-        [Parameter(Mandatory=$true, ValueFromPipeline)][int]$Value
+    Param(
+        [Parameter(Mandatory=$false)][String]$Principal,
+        [Parameter(Mandatory)][ValidateSet("Machine","User")][String]$Context
     )
-    process {
-        switch ([int]$Value) {
-            1 {$true}
-            2 {$false}
-            6 {$true}
-            7 {$false}
+
+    $LoggerFunctions.Logger = "KF.Toolkit.Function.GetKerberosTicketCache"
+
+    # Dump cache
+    # Split the "client" line on greater than symbol and trim results
+    if($Context -eq "Machine"){
+        $CacheContents = $(cmd /c "klist -li 0x3e7")
+    } else {
+        $CacheContents = $(cmd /c "klist")
+    }
+    $CacheContents = $CacheContents | % `
+        {if($_ -like "*#*>*"){
+            $_.Split(">")[1].Trim()
+        }
+        else {
+            $_.Trim()
+        }}
+
+    $Tickets = @()
+
+    for($x = 0; $x -lt $CacheContents.Count; $x++){
+        $Line = $CacheContents[$x]
+
+        if($CacheContents[$x] -match "(Client:)"){
+            $Client = ($Line -split ":")[1].Trim() -Replace " ",""
+        }
+        elseif($CacheContents[$x] -match "(Server:)"){
+            $Server = ($Line -split ":")[1].Trim() -Replace " ",""
+        }
+        elseif($CacheContents[$x] -match "(KerbTicket Encryption Type:)"){
+            $Encryption = ($Line -split ":")[1].Trim() -Replace " ",""
+        }
+        elseif($CacheContents[$x] -match "(Kdc Called:)"){
+            $KDC = ($Line -split ":")[1].Trim() -Replace " ",""
+        }
+        elseif($Line -eq "" -and ($Client -or $Server -or $Encryption -or $KDC)){
+            if(-not [String]::IsNullOrEmpty($Server)){
+                $Ticket = [PSCustomObject]@{
+                    Client = $Client
+                    Server = $Server
+                    Encryption = $Encryption
+                    KDC = $KDC
+                }
+                $Tickets += $Ticket
+            }
         }
     }
+
+    $LoggerFunctions.Debug("Dumped kerberos ticket cache: $($Tickets|Out-TableString)")
+
+    if($Principal){
+        $PolicyServerTicket = $Tickets | Where {$_.Server -eq $Principal}
+        if($PolicyServerTicket){
+            return $PolicyServerTicket
+        }
+        return $false
+    }
+    
+    return $Tickets
 } 
 
 function Get-SecurityGroups {
@@ -46,7 +116,6 @@ function Get-SecurityGroups {
         [Parameter(Mandatory,ParameterSetName="User")][switch]$User
     )
 
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
     $LoggerFunctions.Logger = "MSAE.Toolkit.Function.GetSecurityGroups"
 
     try {
@@ -123,15 +192,14 @@ function Get-TemplateEnrollmentPermissions {
         [Parameter(Mandatory)][String]$ForestDn
     )    
 
-    # Set Logger
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
-    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.GetTemplateEnrollmentPermissions"
-
-    # Permission GUIDs for conditional matching
-    $AutoenrollGuid = "a05b8cc2-17bc-4802-a710-e7c15ab866a2"
-    $EnrollGuid = "0e10c968-78fb-11d2-90d4-00c04f79dc55"
-
     try {
+
+        # Set Logger
+        $LoggerFunctions.Logger = "MSAE.Toolkit.Function.GetTemplateEnrollmentPermissions"
+
+        # Permission GUIDs for conditional matching
+        $AutoenrollGuid = "a05b8cc2-17bc-4802-a710-e7c15ab866a2"
+        $EnrollGuid = "0e10c968-78fb-11d2-90d4-00c04f79dc55"
 
         # Return object for updating during loop
         $TemplatePermissions = [PSCustomObject]@{
@@ -165,28 +233,101 @@ function Get-TemplateEnrollmentPermissions {
 
     }
     catch {
-        Write-Host $_ -ForegroundColor Red
+        $LoggerMain.Exception($_)
     } 
 }
 
-function Test-CertificateTemplate {
+function New-ServiceAccount {
     param(
-        [Parameter(Mandatory)][String]$DisplayName
-    )
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
-    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.GetCertificateTemplate"
+        # Variables to register
+        [Parameter(Mandatory=$true)][String]$Name,
+        [Parameter(Mandatory=$true)][String]$Spn,
+        [Parameter(Mandatory=$false)][String]$Password,
+        [Parameter(Mandatory=$false)][String]$OrgUnit,
+        [Parameter(Mandatory=$false)][Int]$Expiration=$ServiceAccountExpiration,
+        [Parameter(Mandatory=$false)][Bool]$NoConfirm = $false,
 
-    $ConfigContext = ([ADSI]"LDAP://RootDSE").ConfigurationNamingContext 
-    $TemplateContainer = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,$ConfigContext"
-    $Template = $TemplateContainer.Children.where({$_.displayName -eq $DisplayName})
-    if($Template){
-        $LoggerFunctions.Info($Strings.AlreadyExists -f $DisplayName, $True)
-        return $true
-    } else {
-        $LoggerFunctions.Info($Strings.ObjectAvailable -f $DisplayName)
-        return $false
+        # Messages 
+        [Parameter(Mandatory=$false)][String]$OrgUnitMessage = "Enter the full path, common name, or a partial common name, of the AD OU to create {0} in",
+        [Parameter(Mandatory=$false)][String]$OrgUnitMessageColor = "Gray"
+    )
+
+    $LoggerNewServiceAccount = $LoggerFunctions
+    $LoggerNewServiceAccount.Logger = "KF.Toolkit.Function.NewServiceAccount"
+
+    $PathMessage = "Multiple organizational units matching the '{0}' query were returned. Select one of the following choices:"
+    $NonExistentMessage = "Org unit '{0}' does not match any existing AD OU. Please provide another org unit"
+
+    $LoggerNewServiceAccount.Info("Attemping to create service account '$Name'.")
+
+    # Get password
+    [System.Security.SecureString]$Password = Register-ServiceAccountPassword `
+        -Account $Name `
+        -Password $Password `
+        -Secure
+    
+    # Get service account orginization unit path
+    do {
+        if([String]::IsNullOrEmpty($OrgUnit)){
+            $OrgUnit = Read-HostPrompt `
+                -Message $($OrgUnitMessage -f $Name) `
+                -Color $OrgUnitMessageColor
+        }
+
+        # search organization units based on provided search string
+        #$ResultsServiceAccountOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($OrgUnit)*'").DistinguishedName
+        $LoggerNewServiceAccount.Info("Searching for organization units like '$OrgUnit'.")
+        $ResultsServiceAccountOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($OrgUnit)*'").DistinguishedName
+
+        # multiple results found
+        if($ResultsServiceAccountOrgUnitSearch.Count -gt 1){
+            $ServiceAccountOrgUnitPath = Read-PromptSelection `
+                -Message "$($PathMessage -f $OrgUnit)" `
+                -Selections $ResultsServiceAccountOrgUnitSearch
+        
+        # no results found
+        } elseif(-not $ResultsServiceAccountOrgUnitSearch.Count) {
+            $OrgUnitMessage = "$($NonExistentMessage -f $OrgUnit)" ; $OrgUnitMessageColor = "Yellow"
+            $LoggerFunctions.Error($Message)
+            $OrgUnit = $null
+
+        } else {
+            $ServiceAccountOrgUnitPath = $ResultsServiceAccountOrgUnitSearch
+        }
+
+    } until ($OrgUnit)
+
+    # Construct attributes table for verification before creation
+    $CreateObject = [PSCustomObject]@{
+        Name = $Name
+        Expiration = (Get-Date).AddDays($Expiration)
+        ServicePrincipalName = $Spn
+        Path = $ServiceAccountOrgUnitPath
     }
 
+    if(-not $NoConfirm){
+        $LoggerNewServiceAccount.Info("Account Attributes: `n$($CreateObject|Out-TableString)"); $LoggerNewServiceAccount.Console()
+        $CreateConfirmation = Read-HostChoice `
+            -Message "`nReview the above attributes for account creation. Clear your session, or update your configuration file, if a cached value is incorrect." `
+            -Default 1 `
+            -ReturnBool
+    }
+    
+    if($CreateConfirmation -or $NoConfirm -eq $false){
+
+        $ResultCreateServiceAccount = New-AdUser `
+            -Name $CreateObject.Name `
+            -AccountExpirationDate $CreateObject.Expiration `
+            -AccountPassword $Password `
+            -ServicePrincipalNames $Spn `
+            -KerberosEncryptionType $ToolBoxConfig.KeytabEncryptionTypes `
+            -Path $CreateObject.Path `
+            -PasswordNeverExpires:$true `
+            -Enabled:$true 
+
+        $LoggerNewServiceAccount.Success("Successfully created service account '$Name'.")
+        return $true
+    }      
 }
 
 function New-CertificateTemplate {
@@ -200,7 +341,6 @@ function New-CertificateTemplate {
         [Parameter(Mandatory=$false)][switch]$User
     )
 
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
     $LoggerFunctions.Logger = "MSAE.Toolkit.Function.NewCertificateTemplate"
 
     $BaseTemplateComputer = "Computer"
@@ -250,8 +390,6 @@ function New-CertificateTemplate {
             -DomainController $DomainController `
             -Context $ConfigContext
 
-        $LoggerFunctions.Logger = "MSAE.Toolkit.Function.NewCertificateTemplate"
-
         $NewTemplate.put("distinguishedName","CN=$CommonName,$TemplateContainerDn")
         $NewTemplate.put("displayName","$DisplayName")
         $NewTemplate.put("msPKI-Cert-Template-OID","$($NewOid.TemplateOID)")
@@ -299,7 +437,7 @@ function New-CertificateTemplate {
         $NewTemplate.pKIOverlapPeriod = $DuplicateByteProps.pKIOverlapPeriod
         $NewTemplate.SetInfo()
 
-        $LoggerFunctions.Info($Strings.SuccessfullyCreated -f ("certificate template", $DisplayName))
+        $LoggerFunctions.Info($StringsObject.Created -f ("certificate template", $DisplayName))
         $LoggerFunctions.Console("Green")
         return $true
 
@@ -319,13 +457,13 @@ function New-CertificateTemplate {
 function New-Keytab {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory)][string]$Account,
-        [Parameter(Mandatory)][string]$Principal,
-        [Parameter(Mandatory)][string]$Password,
-        [Parameter(Mandatory)][string]$Outfile
+        [Parameter(Mandatory)][String]$Account,
+        [Parameter(Mandatory)][String]$Principal,
+        [Parameter(Mandatory)][String]$Password,
+        [Parameter(Mandatory)][String]$Outfile,
+        [Parameter(Mandatory=$false)][Switch]$ReturnContents
     )
 
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
     $LoggerFunctions.Logger = "MSAE.Toolkit.Function.NewKeytab"
     $LoggerFunctions.Debug(
         ("$($MyInvocation.InvocationName) parameters: $($MyInvocation.BoundParameters|ConvertTo-JSON)").Trim()
@@ -338,19 +476,19 @@ function New-Keytab {
     
     try {
         # Get domain
-        $Domain = ((Get-ADDomain).Forest) 
+        $Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
+        $LoggerFunctions.Debug("Using $Domain as the DNS Root.")
 
-        $PassAsPlainText = [System.Net.NetworkCredential]::new("", $Password).Password
-        $KeytabString = "ktpass -out $Outfile -mapuser $Account@$Domain -kvno 0 -princ $Principal -pass $PassAsPlainText -ptype KRB5_NT_PRINCIPAL -crypto AES256-SHA1 2>&1"
-        #$KeytabString = "ktpass -out $Outfile -mapuser $Account -kvno 0 -princ $Principal -pass $PassAsPlainText -ptype KRB5_NT_PRINCIPAL -crypto AES256-SHA1 2>&1"
-
+        # Create keytab string
+        $KeytabString = "ktpass -out $Outfile -mapuser $Account@$Domain -kvno 0 -princ $Principal -pass $Password -ptype KRB5_NT_PRINCIPAL -crypto AES256-SHA1 2>&1"
         $LoggerFunctions.Debug("keytab create string: $KeytabString")
 
-        $Keytab = $(cmd /c "$KeytabString") -split [environment]::NewLine
+        $Keytab = $(cmd /c $KeytabString) -split [environment]::NewLine
         foreach($Line in $Keytab){
             if($Line -match "(Aborted)"){
-                $LoggerFunctions.Error($Line)
                 $LoggerFunctions.Error($String.FailedGeneral)
+                $LoggerFunctions.Error($Line)
+                Write-Error $($Line) -ErrorAction Stop
 
             } elseif($Line -match "(ktpass:failed getting target domain for specified user)"){
                 $ErrorString = $($Strings.FailedTargetDomain -f $Account)
@@ -362,35 +500,33 @@ function New-Keytab {
             }
         }
         if($Keytab -match "(Keytab version: 0x502)"){
-            $LoggerFunctions.Info(
-                "Successfully created keytab file with an AES256-SHA1 encryption key and output file to $Outfile."
-            )
-            #$LoggerFunctions.Console("Green")
-            $PassAsPlainText = $null #empty clear text password after keytab creation
+            $LoggerFunctions.Info("Successfully created Keytab file and saved to $Outfile.")
+            $LoggerFunctions.Console("Green")
+            $Password = $null #empty clear text password after keytab creation
             return $true
         } 
     }
     catch {
         $LoggerFunctions.Exception($_)
-        throw $_
+        throw
     }
 }
 
 function New-Krb5Conf {
     param(
         [Parameter(Mandatory)][string]$OutFile,
-        [Parameter(Mandatory)][string]$Domain,
-        [Parameter(Mandatory=$false)][string]$KDC
+        [Parameter(Mandatory)][string]$Forest,
+        [Parameter(Mandatory=$false)][string]$KDC,
+        [Parameter(Mandatory=$false)][Switch]$ReturnContents
     )
 
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
     $LoggerFunctions.Logger = "MSAE.Toolkit.Function.NewKrb5Conf"
     $LoggerFunctions.Debug(
         ("$($MyInvocation.InvocationName) parameters: $($MyInvocation.BoundParameters|ConvertTo-JSON)").Trim()
     )
 
-    $Domain = $Domain.ToUpper()
-    $LowerDomain = $Domain.ToLower()
+    $Forest = $Forest.ToUpper()
+    $lowerForest = $Forest.ToLower()
     if([string]::IsNullOrEmpty($KDC)){
         $KDC = $Domain
     }
@@ -398,29 +534,33 @@ function New-Krb5Conf {
 
         $Krb5Conf = (
             "[libdefaults]",
-            "default_realm = $Domain",
+            "default_realm = $Forest",
             "default_tkt_enctypes = aes256-cts-hmac-sha1-96",
             "default_tgs_enctypes = aes256-cts-hmac-sha1-96",
             "permitted_enctypes = aes256-cts-hmac-sha1-96",
 
             "`n[realms]",
-            "$Domain = {",
+            "$Forest = {",
                 "`tkdc = $KDC",
-                "`tdefault_domain = $Domain",
+                "`tdefault_domain = $Forest",
             "}",
 
             "`n[domain_realm]",
-            ".$LowerDomain = $Domain"
+            ".$lowerForest = $Forest"
         ) -join "`r`n"
 
         $LoggerFunctions.Debug(("Krb5Conf file: `n$($Krb5Conf)").Trim())
         Write-Output $Krb5Conf | Out-File -FilePath $OutFile
         if(Test-Path $OutFile){
-            $LoggerFunctions.Info(
-                "Successfully created Krb5 conf and output file to $Outfile."
-            )
-            #$LoggerFunctions.Console("Green")
-            return $true
+            $LoggerFunctions.Info("Successfully created Krb5 conf and saved to $Outfile.")
+            $LoggerFunctions.Console("Green")
+            if($ReturnContents){
+                Write-Host "`n$($Krb5Conf)" `
+                    -NoNewLine `
+                    -ForegroundColor Green
+            } else {
+                return $True
+            }
         }
         else {
             throw "Failed to create Krb5 conf file."
@@ -433,7 +573,6 @@ function New-Krb5Conf {
             "Failed to create Krb5 conf file."
         )
     }
-    return $true
 }
 
 function New-TemplateOid {
@@ -441,9 +580,6 @@ function New-TemplateOid {
         [Parameter(Mandatory)][String]$DomainController,
         [Parameter(Mandatory)][String]$Context
     )
-
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
-    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.NewTemplateOid"
 
     try {
         do {
@@ -477,6 +613,87 @@ function New-TemplateOid {
     }
 }
 
+function Out-Keytab {
+    <#
+    .Synopsis
+        Dumps a keytab file
+    .Description
+        Dumps keytab file contents to the console.
+    .Example
+        Dump-Keytab -Path C:\Users\Administrator\ra-service.keytab
+    #>
+    param (
+        [Parameter(Mandatory)][String]$Path
+    )
+
+    $LoggerOutKeytab = $LoggerFunctions
+    $LoggerOutKeytab.Logger = "MSAE.Toolkit.Function.OutKeytab"
+    $LoggerOutKeytab.Debug(("$($MyInvocation.InvocationName) parameters: $($MyInvocation.BoundParameters|Out-TableString)").Trim())
+
+    try {
+
+        # test provided path and catch exception if path is invalud
+        Test-Path $Path -ErrorAction Stop | Out-Null
+
+        # Initialize keytab content object
+        $KeytabTable = @()
+
+        # Dump keytab to error log stream
+        # Required to keep contents from printing to console
+        $KeytabDump = ktpass -in $Path 2>&1
+
+        $KeytabContents = $KeytabDump -split ([Environment]::NewLine, [StringSplitOptions]::RemoveEmptyEntries)
+        $LoggerOutKeytab.Info("Dumping $Path contents...")
+
+        foreach($Line in $KeytabContents){
+            if($Line -like "*keysize*"){
+                $LoggerOutKeytab.Debug($Line)
+
+                # Substring encryption type
+                # Get index of ETYPE, add 5 index spaces to trim 'etype' from the beginning, assume the next 5 indexes are the encryption type (with whitespace buffer).
+                # Trim to remove whitespace buffer
+                $Type = $Line.Substring($Line.LastIndexOf("etype")+5).Substring(0,5).Trim()
+
+                # Substring principal name
+                # Get index HTTP by trimming beginning and split on first space following principal to isolate string.
+                # Trim to remove extra whitespaces
+                $Principal = $Line.Substring($Line.IndexOf("HTTP")).Split('')[0].Trim()
+
+                # Substring principal name
+                # Get index VNO by getting string value between etype, then getting index value of 'vno' plus 3 index spaces.
+                # Trim to remove extra whitespaces
+                $Version = $Line.Substring(0,$Line.IndexOf("etype")).Substring($Line.IndexOf("vno")+3).Trim()
+
+                # Fail if any of the substrings failed to parse
+                if($Type -notin $KerberosEncryptionTypes.Type){
+                    $ErrorMessage = "The parsed encryption key does not match one of the listed values hardcoded in the variables.ps1."
+                    $LoggerOutKeytab.Error($ErrorMessage); Write-Error $ErrorMessage -ErrorAction Stop
+                    
+                } elseif([String]::IsNullOrEmpty($Principal) -or [String]::IsNullOrEmpty($Version)){
+                    $ErrorMessage = "One of the following required values failed to parse correctly and is empty. Type='$Type', Principal='$Principal', Version='$Version'."
+                    $LoggerOutKeytab.Error($ErrorMessage); Write-Error $ErrorMessage -ErrorAction Stop
+
+                } else {
+                    # store encryption key name in table
+                    $EncKeyHashTable = [PSCustomObject]@{
+                        "Key Type" = ($KerberosEncryptionTypes.where({$Type -eq $_.Type})).Name
+                        Principal = $Principal
+                        Version = $Version
+                    }
+                }
+                # add each hashtable to main array for return
+                $KeytabTable += $EncKeyHashTable
+            }
+        }
+    } catch {
+        $LoggerOutKeytab.Exception($_)
+        throw
+    }
+    
+    $LoggerOutKeytab.Success("The keytab contains the following encryption keys: $($KeytabTable|Out-TableString)")
+    return $KeytabTable
+}
+
 function Set-AutoEnrollmentPermissions {
     param(
         [Parameter(Mandatory)][String]$Template,
@@ -484,39 +701,52 @@ function Set-AutoEnrollmentPermissions {
         [Parameter(Mandatory)][String]$ForestDn
     )
 
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
-    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.SetCertificateTemplatePermissions"
-
+    $LoggerSetAutoEnrollmentPermissions = $LoggerFunctions
+    $LoggerSetAutoEnrollmentPermissions.Logger = "MSAE.Toolkit.Function.SetCertificateTemplatePermissions"
     try {
 
-        $CertificateTemplates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ForestDn"
+        
+        # Get short name of current AD domain
+        $NetBiosName = (Get-ADDomain -Current LocalComputer).NetBIOSName
+
+        # Retrieve template
+        $ParentDomainDn = (Get-ADRootDSE).rootDomainNamingContext
+        $CertificateTemplates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ParentDomainDn"
         $TemplateObject = $CertificateTemplates.Children.where({$_.displayName -eq $Template})
 
         # set autoenroll permissions
-        $ActiveDirectoryObject = New-Object System.Security.Principal.NTAccount($Group)
+        $ActiveDirectoryObject = New-Object System.Security.Principal.NTAccount($NetBiosName,$Group)
+        $LoggerSetAutoEnrollmentPermissions.Debug("Created NTAccount object for: $(($ActiveDirectoryObject).Value)")
         $Identity = $ActiveDirectoryObject.Translate([System.Security.Principal.SecurityIdentifier])
+        $ObjectType = "a05b8cc2-17bc-4802-a710-e7c15ab866a2"
         $Rights = "ExtendedRight"
         $Type = "Allow"
-    
+
+        # create access rule
         $ActiveDirectoryAccessRule = New-Object System.DirectoryServices.ActiveDirectoryAccessRule($Identity,$Rights,$Type)
+        $LoggerSetAutoEnrollmentPermissions.Debug("Created access rule for $($ActiveDirectoryObject): $($ActiveDirectoryAccessRule|Out-TableString)")
         $TemplateObject.ObjectSecurity.SetAccessRule($ActiveDirectoryAccessRule)
         $TemplateObject.CommitChanges()
-        $LoggerFunctions.Debug("Committed ACL changes on '$Template'.")
+
+        $LoggerSetAutoEnrollmentPermissions.Debug("Committed ACL changes on '$Template'.")
         
-        $ResultVerification = Test-AutoEnrollmentPermissions -Template $Template -Group $Group -ForestDn $ForestDn
+        # verify permissions were set
+        $ResultVerification = Test-AutoEnrollmentPermissions `
+            -Template $Template `
+            -Group $Group `
+            -ForestDn $ForestDn
+
         if($ResultVerification){
-            $LoggerFunctions.Debug("Successfully granted autoenrollment permission on '$Template' for security group: $Group.")
-            $LoggerFunctions.Console("Green")
-            #return $true
+            $LoggerSetAutoEnrollmentPermissions.Success("Successfully granted $TemplateComputerGroup autoenrollment permissions on $TemplateComputer")
+        } else {
+            $LoggerSetAutoEnrollmentPermissions.Error(
+                "Failed to grant autoenrollment permission on '$TemplateComputer' for security group: $TemplateComputerGroup. If the template was just created and '$($ToolBoxConfig.ParentDomain)' is a parent domain, this is most likely do to replication.")
+            $LoggerSetAutoEnrollmentPermissions.Console("Red")
         }
-        else{
-            $LoggerFunctions.Error("Failed to grant autoenrollment permission on '$Template' for security group: $Group")
-            $LoggerFunctions.Console("Red")
-            #return $false
-        }
-    }
-    catch {
-        Write-Host $_ -ForegroundColor Red
+
+    } catch {
+        $LoggerSetAutoEnrollmentPermissions.Exception($_)
+        throw
     }
 }
 
@@ -527,8 +757,8 @@ function Test-AutoEnrollmentPermissions {
         [Parameter(Mandatory)][String]$ForestDn
     )    
 
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
-    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.TestAutoEnrollmentPermissions"
+    $LoggerTestAutoEnrollPermissions = $LoggerFunctions
+    $LoggerTestAutoEnrollPermissions.Logger = "MSAE.Toolkit.Function.TestAutoEnrollmentPermissions"
 
     # Permission GUIDs for conditional matching
     $Guids = @(
@@ -536,24 +766,84 @@ function Test-AutoEnrollmentPermissions {
         "00000000-0000-0000-0000-000000000000"
     )
 
-    try {
+    # Get template directory object
+    $ConfigContext = (Get-ADRootDSE).rootDomainNamingContext
+    $CertificateTemplates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ConfigContext"
+    $ProvidedTemplate = $CertificateTemplates.Children.where({$_.Name -eq $Template})
 
-        # Get template directory object
-        $CertificateTemplates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ForestDn"
-        $ProvidedTemplate = $CertificateTemplates.Children.where({$_.Name -eq $Template})
+    $LoggerTestAutoEnrollPermissions.Debug($($ProvidedTemplate.ObjectSecurity.Access|Out-TableString))
 
-        # Loop through Access rules that only contain the name of the provided security group
-        $ProvidedTemplate.ObjectSecurity.Access.where({$_.IdentityReference -match "($Group)"}).foreach{
+    # Loop through Access rules that only contain the name of the provided security group
+    $ProvidedTemplate.ObjectSecurity.Access.where({$_.IdentityReference -match "($Group)"}).foreach{
 
-            # Return true if autoenrollment and allow permissions found
-            if($_.ObjectType.ToString() -in $Guids -and $_.ActiveDirectoryRights -match "(ExtendedRight)"){ 
-                return $true
-            }
+        # Return true if autoenrollment and allow permissions found
+        if($_.ObjectType.ToString() -in $Guids -and $_.ActiveDirectoryRights -match "(ExtendedRight)"){ 
+            $LoggerTestAutoEnrollPermissions.Info("$Group is configured for autoenrollment on $Template")
+            return $true
         }
     }
-    catch {
-        Write-Host $_ -ForegroundColor Red
-    } 
+}
+
+function Test-CertificateTemplate {
+    param(
+        [Parameter(Mandatory)][String]$DisplayName
+    )
+
+    $ConfigContext = (Get-ADRootDSE).rootDomainNamingContext
+    $CertificateTempates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ConfigContext"
+    $Template = $CertificateTempates.Children.where({$_.displayName -eq $DisplayName})
+    if($Template){
+        return $true
+    } else {
+        return $false
+    }
+}
+
+function Test-ElevatedPowerShell {
+    $CurrentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    $CurrentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Test-ServicePrincipalName {
+    <#
+    .Description
+        Find all Service Principal Names in Active Directory and check if it matches the provided name
+    .Parameter Name
+        Service Principal Name to check. Do not include the HTTP prefix.
+    .Outputs
+        None. Empty result if none found
+        System.String. Account name configured with provided Service Principal Name
+    .Example
+        Test-ServicePrincipalNamme policy-server.local
+    
+    #>
+    param(
+        [Parameter(Mandatory)][String]$Name
+    ) 
+
+    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.TestServicePrincipalName"
+    $LoggerFunctions.Debug("$($StringsObject.Search -f ("Service Prinipcal Name", $Name))")
+
+    $Searcher = [adsisearcher]::new()
+    $Searcher.filter = "(servicePrincipalName=*)"
+    $SearchResults = $Searcher.Findall()
+
+    # Dispose of searcher
+    $Searcher.Dispose() 
+
+    # Loop results
+    foreach($Result in $SearchResults){
+        $Entry = $Result.GetDirectoryEntry()
+        if($Entry.servicePrincipalName -eq $Name){
+            $LoggerFunctions.Info(
+                "$($StringsObject.Found -f ("Service Prinipcal Name", $Name))",
+                "'$($Entry.Name)' is configured with '$Name'."
+            )
+            return $Entry.Name
+        }
+    }
+    $LoggerFunctions.Info("$($StringsObject.Available -f $Name)")
+    return # Return empty result if none found
 }
 
 function Test-UniqueOid {
@@ -563,8 +853,6 @@ function Test-UniqueOid {
         [Parameter(Mandatory)][String]$DomainController,
         [Parameter(Mandatory)][String]$Context
     )
-    $LoggerFunctions.Level($ToolBoxConfig.LogLevel)
-    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.NewUniqueOid"
 
     try {
         $Search = Get-ADObject `
@@ -580,11 +868,71 @@ function Test-UniqueOid {
     }
 }
 
-function Out-TableString {
+function Test-RemoteHost {
+     <#
+    .Synopsis
+        Test secure connectivity with remote host
+    .Description
+        Invoke web request with remote host to determine if it is accessible over 443
+    .Parameter Hostname
+        Fully qualified sever name
+    .Parameter Port
+        Port for connectivty test
+    .Parameter Timeout
+        Amount of milliseconds before the request times out and reports false.
+    .Example
+        Test-RemoteHost -Hostname policy-server.local
+    #>
     param(
-        [Parameter(Mandatory,ValueFromPipeline)][Object]$Table
+        [Parameter(Mandatory)][String]$Hostname,
+        [Parameter(Mandatory=$false)][Switch]$ResolveDns,
+        [Parameter(Mandatory=$false)][Int]$Port=443,
+        [Parameter(Mandatory=$false)][Int]$Timeout=500
+	)
+
+    $LoggerFunctions.Logger = "MSAE.Toolkit.Function.TestRemoteHost"
+    $LoggerFunctions.Debug("Testing connectivity with endpoint '$Hostname' over port: $Port")
+		
+    try {
+        if($ResolveDns){
+            Get-Command 'Resolve-DnsName' -ErrorAction Stop | Out-Null
+            $TestDns = Resolve-DnsName $Hostname -ErrorAction Stop
+            $LoggerFunctions.Debug("$($Hostname.ToUpper()) name resolution test results: $($TestDns|Out-TableString)")
+        }
+        $RequestCallback = $State = $Null
+        $Client = New-Object System.Net.Sockets.TcpClient
+        $BeginConnect = $Client.BeginConnect($Hostname,$Port,$RequestCallback,$State)
+        Start-Sleep -milliseconds $Timeout
+        if($Client.Connected){
+            $Client.Close()
+            $LoggerFunctions.Info("'$Hostname' is reachable over port $Port.")
+            return $true
+        }
+        else {
+            Write-Error -ErrorAction Stop `
+                -Message "Policy server endpoint 'https://$($PolicyServerAttributes.Fqdn)' is unreachable. Verify the route is open and try again." `
+                -Category ResourceUnavailable
+        }
+    } catch {
+        $LoggerFunctions.Exception($_)
+        Write-Host $_ -ForegroundColor Red
+    }
+}
+
+function Confirm-RequiredParameters {
+    param(
+        [Parameter(Mandatory)][String[]]$RequiredParameters,
+        [Parameter(Mandatory)][Hashtable]$BoundParameters
     )
-    process {
-        "`n$(($Table|Format-List|Out-String).Trim())"
+
+    if("NonInteractive" -in $BoundParameters.Keys){
+        foreach($Param in $RequiredParameters){
+            if($Param -notin $BoundParameters.Keys){
+                Write-Error "The $Param parameter is required for the 'cep-config' tool when using Non-Interactive mode."
+            } else {
+                # Create pairing with parameter and value
+                #Write-Host"$Param=$(($BoundParameters.GetEnumerator()|Where-Object{$_.Key -eq $Param}).Value)"
+            }
+        }
     }
 }

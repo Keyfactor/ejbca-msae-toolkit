@@ -21,25 +21,6 @@ The current version of this tool has only been tested on PowerShell 5.1 and 7.1.
   * Domain Controller
   * Member Server
 
-## Configuration File
-
-A configuration file is provided to allow the prepoluation of MSAE values. This reduces the number of prompts that may appear asking for values when a tool is selected. It is recommended to update this configuration file when an available variable defined in the file has a known value.
-
-* Leave empty configurations commented out if they do not have a value
-
-## Tools
-### Create Service Account
-
-Create service account with the attributes required to support an MSAE integration configuration.
-
-### Create Kerberos Files
-
-Generates Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values.
-
-### Create Certificate Template
-
-Create a new certificate template based on a Computer or User context.
-
 ## Getting Started
 1. Open a Powershell console as Admin on a Windows Server (Domain Controller or Member Server)
 
@@ -53,23 +34,53 @@ Create a new certificate template based on a Computer or User context.
     .\toolkit.ps1
     ```
 
-1. Enter a selection number at the main menu.
+1. The console will display the available Tools and Options.
     ```pwsh
-    Welcome to the Keyfactor Delivery MSAE PowerShell Toolbox! Select one of the tools below to get started. To get more in
-    formation about each tool, select the README.
+    Welcome to the Keyfactor Delivery MSAE PowerShell Toolbox! Select one of the tools below to get started. To get more information about each tool, select the README.
 
-    Choice   Title                          Description                                                                   
-    ------   -----                          -----------                                                                   
-    1        Create Kerberos Files          Generate Keytab and Krb5.conf files based Active Directory, Policy Server,    
-                                            and Service Account values.                                                   
-    2        Create Certificate Template    Clone an existing template or create a new certificate template based on a    
-                                            Computer or User context.                                                     
+    Tools
+        acctcreate           Create and configure a new service account to use in an MSAE integration.
+        kerbcreate           Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values.
+        kerbdump             Dump the content of an existing keytab file.
 
-    Selection: 2
+    Options
+        -PolicyServer        Configurable. EJBCA Policy Server hostname containing the MSAE alias. Ex: policy-server.keyfactor.com
+        -PolicyServerAlias   Configurable. Name of configured msae alias in EJBCA.
+        -ServiceAccount      Configurable. Active Directory service account.
+        -TemplateComputer    Configurable. Computer context autoenrollment template name.
+        -ComputerGroup       Configurable. Computer context autoenrollment security group.
+        -EnrollmentContext   Autoenrollment context
+        -NonInteractive      Suppress prompts. Does not include prompts for undefined variables.
+        -Configfile          Configuration file containing predefined parameters vand values. Default: main.conf
+        -Help
     ```
 
-1. Complete the prompts as the appear in the console and enter 'quit' or Crtl-C when you wish to exit.
+1. Run a specific tool using one of the positional parameters with all console prompts
+    ```pwsh
+    .\toolkit.ps1 acctcreate
+    ```
 
+## Parameters
+
+The available parmeter values that can be passed in one of the two methods below can be viewed with `-help`
+
+### Configuration File
+
+A configuration file is provided to allow the prepoluation of parameter values. This reduces the number of prompts that may appear asking for values when a tool is selected. It is recommended to update this configuration file when an available variable defined in the file has a known value.
+
+* Leave empty configurations commented out if they do not have a value
+
+```pwsh
+.\toolkit.ps1 acctcreate -configfile "prod.conf"
+```
+
+### Commond Line
+
+Parameter values can be passed on the CLI when launching a tool
+
+```pwsh
+.\toolkit.ps1 acctcreate -PolicyServer "ejbca.policyserver.com" -ServiceAccount "ra-service"
+```
 
 ## Logging
 
