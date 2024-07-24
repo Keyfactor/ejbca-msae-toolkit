@@ -15,7 +15,6 @@ class WriteLog {
     static [String]$LogPath
     static [String]$DefaultConsole = $false
     
-
     # Empty constructor
     WriteLog(){}
         
@@ -28,26 +27,20 @@ class WriteLog {
         $this.LogDirectory = $LogDir
         [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
     }
-    WriteLog([String]$LogDir, [String]$LogFile, [String]$Logger){
+    WriteLog([String]$LogDir, [String]$LogFile, [String]$LogLevel){
         $this.LogFile = $LogFile
         $this.LogDirectory = $LogDir
-        $this.Logger = $Logger
+        $this.LogLevel = $LogLevel
         [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
     }
-    WriteLog([String]$LogDir, [String]$LogFile, [String]$Level, [String]$Logger){
+    WriteLog([String]$LogDir, [String]$LogFile, [String]$LogLevel, [String]$Logger){
         $this.LogFile = $LogFile
         $this.LogDirectory = $LogDir
-        $this.LogLevel = $Level
+        $this.LogLevel = $LogLevel
         $this.Logger = $Logger
         [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
     }
 
-    ChangeLogger([String]$ModuleLogger){
-        $this.Logger = $ModuleLogger
-    }
-    Level([String]$Level){
-        $this.LogLevel = $Level
-    }
     # write last message to console
     Console(){
         Write-Host $($this.Message) -ForegroundColor $this.DefaultColor
@@ -90,6 +83,16 @@ class WriteLog {
             $this.WriteToLog($Messages,"DEBUG",$this.DefaultColor,$OutputConsole)
         }
     }
+    Error([String[]]$Messages){
+        $Color = $this.DefaultColor
+        $OutputConsole = $this.DefaultConsole
+        $this.WriteToLog($Messages,"ERROR",$Color,$OutputConsole)
+        
+    }
+    Error([String[]]$Messages, [Boolean]$Console){
+        $OutputConsole = $Console
+        $this.WriteToLog($Messages,"ERROR","Red",$OutputConsole)
+    }
     Exception([object]$Exception){
         $OutputConsole = $this.DefaultConsole
         $Messages = (
@@ -97,15 +100,6 @@ class WriteLog {
             $($Exception[0].Exception)
         )
         $this.WriteToLog($Messages,"ERROR",$this.DefaultColor,$OutputConsole)
-    }
-    Error([String[]]$Messages){
-        $Color = $this.DefaultColor
-        $OutputConsole = $this.DefaultConsole
-        $this.WriteToLog($Messages,"ERROR",$Color,$OutputConsole)
-    }
-    Error([String[]]$Messages, [Boolean]$Console){
-        $OutputConsole = $Console
-        $this.WriteToLog($Messages,"ERROR","Red",$OutputConsole)
     }
 
     hidden WriteToLog (
