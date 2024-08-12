@@ -1,44 +1,71 @@
-
 # Create Loggers
-$LoggerMain = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.LogFiles.Main, $ToolBoxConfig.LogLevel, "KF.Toolkit.Main")
+$LoggerMain = [WriteLog]::New($ToolBoxConfig.LogDirectory, 
+                              $ToolBoxConfig.LogFiles.Main, 
+                              $ToolBoxConfig.LogLoggers.Main, 
+                              $ToolBoxConfig.LogLevel
+                              )
+$LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory,
+                                   $ToolBoxConfig.LogFiles.Main,
+                                   $ToolBoxConfig.LogLoggers.Functions,
+                                   $ToolBoxConfig.LogLevel
+                                  )
+$LoggerValidation = [WriteLog]::New($ToolBoxConfig.LogDirectory,
+                                    $ToolBoxConfig.LogFiles.Validation,
+                                    $ToolBoxConfig.LogLoggers.Validation,
+                                    $ToolBoxConfig.LogLevel,
+                                    $True
+                                  )
 
-$LoggerMain.Debug("Executing pre-tasks.")
+if($ToolBoxConfig.Debug){
+    $DebugPreference = "SilentlyContinue"
+
+    # Remove previous log file and create new
+    try {
+        Get-ChildItem $ToolBoxConfig.LogDirectory | ForEach-Object{ Remove-Item "$($ToolBoxConfig.LogDirectory)\$_" -ErrorAction Stop | Out-Null }
+    } catch [ItemNotFoundException]{
+        continue
+    }
+
+    $LoggerMain.Debug((
+        "The toolkit was launched with parameters: $($($MyInvocation.BoundParameters | Format-List | Out-String).Trim())",
+        "Toolkit configuration variables: `n$($($ToolBoxConfig | Format-List| Out-String).Trim())",
+        "Executing pre-tasks."
+    ))
+}
+else {
+    $LoggerMain.Info(("","-----------------New Script Run $((Get-Date).ToString())------------------","")); Clear-Host
+}  
 
 # Import configuration file
 $LoggerMain.Info("Importing configuration values from $($ToolBoxConfig.ConfigurationFile).")
 foreach($Configuration in $(Get-Content $ToolBoxConfig.ConfigurationFile -ErrorAction Stop)){
+
+    # build namespace using config section name if name is Main
+    if($Configuration -match "(\[(.*?)\])" -and $Configuration -notmatch "(Main)" -and $Configuration -notlike "#*"){
+        $Namespace = $Configuration.Split("[")[1].Split("]")[0].Replace(" ","")
+    }
+
+    # get values from each section
     if($Configuration -match "(=)" -and $Configuration -notlike "#*"){
-        $Variable = $Configuration.Split("=")[0].Trim() # Variable name is before '='
+        $ConfigVariable = $Configuration.Split("=")[0].Trim() # Variable name is before '='
         # Variable value is after '='. Strip quotes to consider empty if nothing remains after quotes removed
-        $Value = $Configuration.split("=",2)[1].Replace('"',"").Replace("'","").Trim() 
+        $ConfigValue = $Configuration.split("=",2)[1].Replace('"',"").Replace("'","").Trim() 
 
         # Add variable to file if it has a length and the variable is defined as a parameter for the script
-        if($Value.Length -and ($Variable -in $OptionsParameters.Name)){
-            Set-Variable -Name $Variable -Value $Value -Scope Script # Set all imported variables as Gloabl
-            $LoggerMain.Info("Imported '$($Configuration)' from configuration file.")
+        if($ConfigValue.Length -and ($ConfigVariable -in $AvailableConfigValues.Name)){
+            $Variable = $Namespace + $ConfigVariable # create variable from adding namespace to front of variable
+            Set-Variable -Name $Variable -Value $ConfigValue -Scope Script # Set all imported variables as Gloabl
+            $LoggerMain.Info("Imported '$($ConfigVariable)' from configuration file as '$("$Variable = $ConfigValue")'")
         }
     }
 }
 
+
 # Import Functions
 $LoggerMain.Debug("Importing functions...")
+
 Get-ChildItem $ToolBoxConfig.Functions -Filter *.ps1 | `
     ForEach-Object {. (Join-Path $ToolBoxConfig.Functions $_.Name)} | Out-Null
-
-# Create new log every time script runs
-if($ToolBoxConfig.Debug){
-
-    # Remove previous log file and create new
-    Remove-Item "$($ToolBoxConfig.LogDirectory)\$($ToolBoxConfig.LogFiles.Main)" -ErrorAction SilentlyContinue | Out-Null 
-    New-Item "$($ToolBoxConfig.LogDirectory)\$($ToolBoxConfig.LogFiles.Main)" -ErrorAction SilentlyContinue | Out-Null 
-
-    $LoggerMain.Debug(("Toolkit configuration variables: $($ToolBoxConfig|Out-TableString)"))
-    $LoggerMain.Debug("The toolkit was launched with parameters: `n$($($MyInvocation.BoundParameters | Format-Table | Out-String).Trim())")
-}
-else {
-    Clear-Host
-    $LoggerMain.Info("`n`n------------------NEW SCRIPT RUN------------------")
-}   
 
 # Set Interactive Mode
 if(Assert-DesktopMode){

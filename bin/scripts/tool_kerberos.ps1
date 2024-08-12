@@ -2,28 +2,32 @@
 # Create Kerberos files
 if(($Tool -eq 'kerbcreate')){
 
-# Write operating to console when running interactive so user knows what is happening
-if($NonInteractive){Write-Host "Creating kerberos files..." -ForegroundColor Yellow}
+    # Write operating to console when running interactive so user knows what is happening
+    if($NonInteractive){Write-Host "Creating kerberos files..." -ForegroundColor Yellow}
 
-$PolicyServerObject= Register-PolicyServer -IncludeAlias `
-    -Server $PolicyServer `
-    -Alias $PolicyServerAlias
+    $PolicyServerObject= Register-PolicyServer -IncludeAlias `
+        -Server $PolicyServerHostname `
+        -Alias $PolicyServerAlias
 
-$ServiceAccount = Register-ServiceAccount -ValidateExists `
-    -Account $ServiceAccount
+    $ServiceAccountName = Register-ServiceAccount -ValidateExists `
+        -Account $ServiceAccountName
 
-# Create Keytab
-$ResultCreateKeytab = New-Keytab `
-    -Account $ServiceAccount `
-    -Principal $PolicyServerObject.UPN `
-    -Password $ServiceAccountPassword `
-    -Outfile "$($ToolBoxConfig.Files)\$($ServiceAccount).keytab"
+    $ServiceAccountPassword = Register-ServiceAccountPassword `
+        -Account $ServiceAccountName `
+        -Password $ServiceAccountPassword
 
-# Create Krb5 Configuration file
-$ResultCreateKrb5Conf = New-Krb5Conf `
-    -Forest $ToolBoxConfig.ParentDomain `
-    -KDC $ToolBoxConfig.Domain `
-    -Outfile "$($ToolBoxConfig.Files)\$($ServiceAccount)-krb5.conf"
+    # Create Keytab
+    $ResultCreateKeytab = New-Keytab `
+        -Account $ServiceAccountName `
+        -Principal $PolicyServerObject.UPN `
+        -Password $ServiceAccountPassword `
+        -Outfile "$($ToolBoxConfig.Files)\$($ServiceAccountName).keytab"
+
+    # Create Krb5 Configuration file
+    $ResultCreateKrb5Conf = New-Krb5Conf `
+        -Forest $ToolBoxConfig.ParentDomain `
+        -KDC $ToolBoxConfig.Domain `
+    -Outfile "$($ToolBoxConfig.Files)\$($ServiceAccountName)-krb5.conf"
 
 # Dump Kerberos Files
 } elseif($Tool -eq "kerbdump") {
@@ -32,12 +36,12 @@ $ResultCreateKrb5Conf = New-Krb5Conf `
 if($NonInteractive){Write-Host "Dumping kerberos files..." -ForegroundColor Yellow}
 
     # Get existing keytab file
-    $Keytab = Register-File `
+    $KerberosKeytab = Register-File `
         -Message "Enter the full path to the keytab file" `
-        -FilePath $Keytab `
+        -FilePath $KerberosKeytab `
         -FileType "Keytab" `
         -Validate
 
     # Dump contents
-    $KeytabContents = Out-Keytab $Keytab
+    $KeytabContents = Out-Keytab $KerberosKeytab
 }
