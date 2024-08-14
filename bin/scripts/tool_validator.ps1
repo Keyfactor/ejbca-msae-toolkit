@@ -13,6 +13,11 @@ $KerberosKeytab = Register-File `
     -FilePath $KerberosKeytab `
     -FileType "Kerberos Keytab" 
 
+$KerberosKrb5 = Register-File `
+    -Message "Enter the full path to the krb5 file" `
+    -FilePath $KerberosKrb5 `
+    -FileType "Kerberos Krb5" 
+
 $TemplateContext = Register-CertificateTemplateContext `
     -Context $TemplateContext
 
