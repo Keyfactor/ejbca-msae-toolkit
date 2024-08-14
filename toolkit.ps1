@@ -11,9 +11,12 @@ Param(
     [Parameter(Mandatory=$False, Position=0)][String]$Tool,
 
     # Options
-    [Parameter(Mandatory=$false)][Switch]$NonInteractive,
-    [Parameter(Mandatory=$false)][ValidateScript({Test-Path $_})][String]$Configfile = "$PSScriptRoot\main.conf",
-    [Parameter(Mandatory=$false)][Switch]$Help
+    [Parameter(Mandatory=$false)]
+    [Switch]$NonInteractive,
+    [Parameter(Mandatory=$false)][ValidateScript({Test-Path $_})]
+    [String]$Configfile = "$PSScriptRoot\main.conf",
+    [Parameter(Mandatory=$false)]
+    [Switch]$Help
 )
 
 try {
@@ -25,7 +28,7 @@ try {
         ScriptHome = $PSScriptRoot
         ScriptExit = $false
         Debug = %{if($MyInvocation.BoundParameters.Keys -contains "Debug"){$true}else{$false}}
-        NonInteractive = $false
+        NonInteractive = $NonInteractive
         DesktopMode = $false
         OS = $env:OS 
         Classes = "bin\classes\main.ps1"
@@ -140,4 +143,3 @@ catch {
         }
     }
 }
-

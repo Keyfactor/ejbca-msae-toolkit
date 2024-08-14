@@ -10,7 +10,6 @@ function Register-PolicyServer {
         [Parameter(Mandatory=$false)][String]$AliasMessage = "Enter the name of the configured EJBCA MSAE alias",
         [Parameter(Mandatory=$false)][String]$AliasMessageColor = $FontColor.Base,
         
-
         # Options
         [Parameter(Mandatory=$false)][Switch]$IncludeAlias,
         [Parameter(Mandatory=$false)][Switch]$ValidateAvailableSpn
@@ -18,9 +17,14 @@ function Register-PolicyServer {
 
     $ServicePrincipalNameNotUnique = "The EJBCA policy server service principal name '{0}' is already configured on '{1}'.`nProvide a different hostname."
     $RegistrationType = "Policy Server"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-        if([String]::IsNullOrEmpty($Server)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Server)){
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            exit
+        
+        } elseif([String]::IsNullOrEmpty($Server)){
             $Server = Read-HostPrompt `
                 -Message $ServerMessage `
                 -Color $ServerMessageColor
@@ -67,7 +71,13 @@ function Register-PolicyServer {
     # Get msae alias if switch provided 
     if($IncludeAlias){
         $RegistrationType = "Policy Server Alias"
-        if([String]::IsNullOrEmpty($Alias)){
+        $RegistrationVariable = $RegistrationType.Replace(' ','')
+
+        if($NonInteractive -and [String]::IsNullOrEmpty($Alias)){
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            exit
+        
+        } elseif([String]::IsNullOrEmpty($Alias)){
             $Alias = Read-HostPrompt `
                 -Message $AliasMessage `
                 -Color $AliasMessageColor
@@ -106,11 +116,15 @@ function Register-ServiceAccount {
         [Parameter(Mandatory=$false)][Switch]$ValidateExists
     )
 
-    $RegistrationType = "Service Account"
+    $RegistrationType = "Account Name"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-        # get service account name if it doesnt already exist
-        if([String]::IsNullOrEmpty($Account)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Account)){
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            exit
+        
+        } elseif([String]::IsNullOrEmpty($Account)){
             $Account = Read-HostPrompt `
                 -Message $Message `
                 -Color $MessageColor 
@@ -158,11 +172,16 @@ function Register-ServiceAccountPassword {
         [Parameter(Mandatory=$false)][Switch]$Secure
     )
 
-    $RegistrationType = "Service Account Password"
+    $RegistrationType = "Account Password"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     try{
         do {
-            if([String]::IsNullOrEmpty($Password)){
+            if($NonInteractive -and [String]::IsNullOrEmpty($Password)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+            } elseif([String]::IsNullOrEmpty($Password)){
                 if($Secure){
                     $Password = Read-HostPrompt -Secure `
                         -Message $Message `
@@ -233,11 +252,15 @@ function Register-ServiceAccountOrgUnit {
 
     $PathMessage = "Multiple organizational units matching the '{0}' query were returned. Select one of the following choices:"
     $NonExistentMessage = "Org unit '{0}' does not match any existing AD OU. Please provide another org unit"
-    $RegistrationType = "Service Account Organization Unit"
+    $RegistrationType = "Account Org Unit"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-
-        if([String]::IsNullOrEmpty($OrgUnit)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($OrgUnit)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+        } elseif([String]::IsNullOrEmpty($OrgUnit)){
             $OrgUnit = Read-HostPrompt `
                 -Message $($OrgUnitMessage -f $Name) `
                 -Color $OrgUnitMessageColor
@@ -286,10 +309,15 @@ function Register-File {
     )
 
     $RegistrationType = $FileType
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
         try {
-            if([String]::IsNullOrEmpty($FilePath) -or ($ToolBoxConfig.UseDefaults -eq $false)){
+            if($NonInteractive -and [String]::IsNullOrEmpty($FilePath)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+            } elseif([String]::IsNullOrEmpty($FilePath) -or ($ToolBoxConfig.UseDefaults -eq $false)){
                 $FilePath = Read-HostPrompt `
                     -Message $Message `
                     -Color $MessageColor
@@ -323,15 +351,20 @@ function Register-AutoenrollSecurityGroup {
         [Parameter(Mandatory)][AllowEmptyString()][String]$Group,
         [Parameter(Mandatory=$false)][String]$Message = "Enter the name for the Security Group to add to the certificate template with autoenrollment permissions",
         [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base,
-        [Parameter(Mandatory=$false)][ValidateSet("Machine","User")][String]$Context = "Machine",
+        [Parameter(Mandatory=$false)][ValidateSet("Computer","User")][String]$Context = "Computer",
         [Parameter(Mandatory=$false)][Switch]$Validate
     )
 
     $RegistrationType = "$Context Security Group"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do{
         try {
-            if([String]::IsNullOrEmpty($Group)){
+            if($NonInteractive -and [String]::IsNullOrEmpty($Group)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+            } elseif([String]::IsNullOrEmpty($Group)){
                 $Group = Read-HostPrompt `
                     -Message $Message `
                     -Color $MessageColor
@@ -358,18 +391,24 @@ function Register-AutoenrollSecurityGroup {
 function Register-CertificateTemplate {
     param(
         [Parameter(Mandatory)][AllowEmptyString()][String]$Template,
-        [Parameter(Mandatory=$false)][String]$Message="Enter the name for the new Computer context certiticate template",
+        [Parameter(Mandatory=$false)][String]$Message="Enter the name for the new {0} context certiticate template",
         [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base,
+        [Parameter(Mandatory=$true)][ValidateSet("Computer","User")][String]$Context="Computer",
         [Parameter(Mandatory=$false)][Bool]$Existing=$true
+        
     )
 
-    $RegistrationType = "Certificate Template"
+    $RegistrationType = "Template $Context"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-
-        if([String]::IsNullOrEmpty($Template)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Template)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+        } elseif([String]::IsNullOrEmpty($Template)){
             $Template = Read-HostPrompt `
-                -Message $Message `
+                -Message "$($Message -f $Context)" `
                 -Color $MessageColor
             $RegistrationTemplate = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Template))"
         } else { $RegistrationTemplate = "$($Strings.RegisterImported -f ($RegistrationType, $Template))" }
@@ -409,11 +448,17 @@ function Register-CertificateTemplateContext {
         [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base
     )
 
-    $RegistrationType = "Certificate Template Context"
     $LoggerFunctions.Debug(("Current Computer: $($env:COMPUTERNAME)","Current User: $($env:USERNAME)"))
 
+    $RegistrationType = "Template Context"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
+    
     do {
-        if([String]::IsNullOrEmpty($Context)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Context)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+        } elseif([String]::IsNullOrEmpty($Context)){
             $LoggerFunctions.Debug("Getting certificate template context value from user input.")
 
             $Context = Read-HostChoice `

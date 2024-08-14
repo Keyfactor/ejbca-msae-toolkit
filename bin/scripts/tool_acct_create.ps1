@@ -3,14 +3,14 @@
 if($NonInteractive){Write-Host "Creating service account..." -ForegroundColor Yellow}
 
 $PolicyServerObject= Register-PolicyServer -ValidateAvailableSpn `
-    -Server $PolicyServerHostname 
+    -Server $PolicyServer 
 
-$ServiceAccountName = Register-ServiceAccount `
-    -Account $ServiceAccountName
+$AccountName = Register-ServiceAccount `
+    -Account $AccountName
 
 $CreateServiceAccount = New-ServiceAccount `
-    -Name $ServiceAccountName `
-    -Password $ServiceAccountPassword `
+    -Name $AccountName `
+    -Password $AccountPassword `
     -Spn $PolicyServerObject.Spn `
-    -OrgUnit $ServiceAccountOrgUnit `
+    -OrgUnit $AccountOrgUnit `
     -NoConfirm $NonInteractive

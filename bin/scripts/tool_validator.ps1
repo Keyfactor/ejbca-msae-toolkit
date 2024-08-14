@@ -2,31 +2,39 @@
 
 Write-Host "`n[Registering Required Variables]"
 $PolicyServerObject = Register-PolicyServer -IncludeAlias `
-    -Server $PolicyServerHostname `
+    -Server $PolicyServer `
     -Alias $PolicyServerAlias
 
-$ServiceAccountName = Register-ServiceAccount -ValidateExists `
-    -Account $ServiceAccountName `
+$AccountName = Register-ServiceAccount -ValidateExists `
+    -Account $AccountName `
 
 $KerberosKeytab = Register-File `
     -Message "Enter the full path to the keytab file" `
     -FilePath $KerberosKeytab `
-    -FileType "Keytab" 
+    -FileType "Kerberos Keytab" 
 
 $TemplateContext = Register-CertificateTemplateContext `
-    -Context $TemplateContext 
+    -Context $TemplateContext
 
 Switch ($TemplateContext) {
     "Computer" {
-        $TemplateName = Register-CertificateTemplate -Template $TemplateComputer
+        $TemplateName = Register-CertificateTemplate `
+            -Template $TemplateComputer `
+            -Context "Computer"
+
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateComputerGroup `
+            -Context "Computer" `
             -Validate
     }
     "User" {
-        $TemplateName = Register-CertificateTemplate -Template $TemplateUser 
+        $TemplateName = Register-CertificateTemplate `
+            -Template $TemplateUser `
+            -Context "User"
+
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateUserGroup `
+            -Context "User" `
             -Validate
     }
 }
@@ -34,7 +42,7 @@ Switch ($TemplateContext) {
 Write-Host "`n[Validation]"
 
 Test-ServiceAccount `
-    -Account $ServiceAccountName `
+    -Account $AccountName `
     -ServicePrincipalName $PolicyServerObject.SPN
 
 Test-Kerberos `

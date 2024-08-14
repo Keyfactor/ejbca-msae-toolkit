@@ -7,19 +7,23 @@ Switch ($TemplateContext) {
     "Computer" {
         $TemplateName = Register-CertificateTemplate `
             -Template $TemplateComputer `
+            -Context "User" `
             -Existing:$false
 
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateComputerGroup `
+            -Context "Computer" `
             -Validate
     }
     "User" {
         $TemplateName = Register-CertificateTemplate `
             -Template $TemplateUser `
+            -Context "User" `
             -Existing:$false
 
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateUserGroup `
+            -Context "Computer" `
             -Validate
     }
 }

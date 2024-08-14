@@ -194,34 +194,33 @@ $Global:AvailableTools = @(
 $Global:AvailableConfigValues = @(
     
     # Service Account
-    [PSCustomObject]@{ Name = "Name"            ; Description = "Service Account. Active Directory service account."}
-    [PSCustomObject]@{ Name = "Password"        ; Description = "Service Account. Active Directory service account password."}
-    [PSCustomObject]@{ Name = "Expiration"      ; Description = "Service Account. Days the service account will be valid for (Account Creation)."}
-    [PSCustomObject]@{ Name = "OrgUnit"         ; Description = "Service Account. Common Name, or Distinguished Name, of service account organization unit in Active Directory."}
+    [PSCustomObject]@{ Name = "AccountName"                 ; Description = "Active Directory service account."}
+    [PSCustomObject]@{ Name = "AccountPassword"             ; Description = "Active Directory service account password."}
+    [PSCustomObject]@{ Name = "AccountExpiration"           ; Description = "Days the service account will be valid for (Account Creation)."}
+    [PSCustomObject]@{ Name = "AccountOrgUnit"              ; Description = "Common Name, or Distinguished Name, of service account organization unit in Active Directory."}
 
     # Policy Server
-    [PSCustomObject]@{ Name = "Hostname"        ; Description = "Policy Server. EJBCA Policy Server hostname containing the MSAE alias. Ex: policy-server.keyfactor.com."}
-    [PSCustomObject]@{ Name = "Alias"           ; Description = "Policy Server. Name of configured msae alias in EJBCA."}
-    [PSCustomObject]@{ Name = "Policy"          ; Description = "Policy Server. Name of EJBCA Policy Name configured in the msae alias."}
+    [PSCustomObject]@{ Name = "PolicyServer"                ; Description = "EJBCA Policy Server hostname containing the MSAE alias. Ex: policy-server.keyfactor.com."}
+    [PSCustomObject]@{ Name = "PolicyServerAlias"           ; Description = "Name of configured msae alias in EJBCA."}
+    [PSCustomObject]@{ Name = "PolicyServerAliasPolicy"     ; Description = "Name of EJBCA Policy Name configured in the msae alias."}
 
     # Kerberos
-    [PSCustomObject]@{ Name = "Keytab"          ; Description = "Kerberos. Absolute path to keytab."}
-    [PSCustomObject]@{ Name = "Krb5"            ; Description = "Kerberos. Absolute path to krb5 conf."}
+    [PSCustomObject]@{ Name = "KerberosKeytab"              ; Description = "Absolute path to keytab."}
+    [PSCustomObject]@{ Name = "KerberosKrb5"                ; Description = "Absolute path to krb5 conf."}
 
     # Templates
-    [PSCustomObject]@{ Name = "Context"         ; Description = "Template. Group Policy configuration context. Options: Computer or User"}
-    [PSCustomObject]@{ Name = "Computer"        ; Description = "Template. Computer context autoenrollment template name."}
-    [PSCustomObject]@{ Name = "ComputerGroup"   ; Description = "Template. Computer context autoenrollment security group name."}
-    [PSCustomObject]@{ Name = "User"            ; Description = "Template. User context autoenrollment template name."}
-    [PSCustomObject]@{ Name = "UserGroup"       ; Description = "Template. User context autoenrollment security group name."}
+    [PSCustomObject]@{ Name = "TemplateContext"             ; Description = "Group Policy configuration context. Options: Computer or User"}
+    [PSCustomObject]@{ Name = "TemplateComputer"            ; Description = "Computer context autoenrollment template name."}
+    [PSCustomObject]@{ Name = "TemplateComputerGroup"       ; Description = "Computer context autoenrollment security group name."}
+    [PSCustomObject]@{ Name = "TemplateUser"                ; Description = "User context autoenrollment template name."}
+    [PSCustomObject]@{ Name = "TemplateUserGroup"           ; Description = "User context autoenrollment security group name."}
 )
 
-
 $Global:ToolkitMenuOptions = @(
-    [PSCustomObject]@{ Name = "noninteractive"  ; Description = "Suppress prompts. Does not include prompts for undefined variables."}
-    [PSCustomObject]@{ Name = "configfile"      ; Description = "Configuration file containing predefined parameters vand values. Default: main.conf"}
-    [PSCustomObject]@{ Name = "debug"           ; Description = "Enable debug logging and additional features"}
-    [PSCustomObject]@{ Name = "help"            ; Description = "Print tool help"}
+    [PSCustomObject]@{ Name = "noninteractive"              ; Description = "Suppress all prompts. The toolkit will exit if a required variable is undefined."}
+    [PSCustomObject]@{ Name = "configfile"                  ; Description = "Configuration file containing predefined parameters vand values. Default: main.conf"}
+    [PSCustomObject]@{ Name = "debug"                       ; Description = "Enable debug logging and additional features"}
+    [PSCustomObject]@{ Name = "help"                        ; Description = "Print tool help"}
 )
 
 $Global:KerberosEncryptionTypes = @(
@@ -251,6 +250,7 @@ $Global:Strings = @{
     RegisterUserProvided = "Setting {0} as '{1}' based on user provied input."
     Search = "Searching for a {0} that matches '{1}'"
     WhiteSpaceNoChoice = "The user chose not to provide a name without white spaces or let theGetServiceAccountPassword tool automatically change it."
+    UndefinedNonInterfactive = "{0} Error: A value for '{1}' was not found in the configuration file or as a parameter."
     UsingCachedValue = "Using cached value {0}: {1} "
 }
 

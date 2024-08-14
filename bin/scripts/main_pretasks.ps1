@@ -53,9 +53,8 @@ foreach($Configuration in $(Get-Content $ToolBoxConfig.ConfigurationFile -ErrorA
 
         # Add variable to file if it has a length and the variable is defined as a parameter for the script
         if($ConfigValue.Length -and ($ConfigVariable -in $AvailableConfigValues.Name)){
-            $Variable = $Namespace + $ConfigVariable # create variable from adding namespace to front of variable
-            Set-Variable -Name $Variable -Value $ConfigValue -Scope Script # Set all imported variables as Gloabl
-            $LoggerMain.Info("Imported '$($ConfigVariable)' from configuration file as '$("$Variable = $ConfigValue")'")
+            Set-Variable -Name $ConfigVariable -Value $ConfigValue -Scope Script # Set all imported variables as Gloabl
+            $LoggerMain.Info("Imported '$($ConfigVariable)' from configuration file as '$("$ConfigVariable = $ConfigValue")'")
         }
     }
 }

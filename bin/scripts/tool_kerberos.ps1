@@ -6,28 +6,28 @@ if(($Tool -eq 'kerbcreate')){
     if($NonInteractive){Write-Host "Creating kerberos files..." -ForegroundColor Yellow}
 
     $PolicyServerObject= Register-PolicyServer -IncludeAlias `
-        -Server $PolicyServerHostname `
+        -Server $PolicyServer `
         -Alias $PolicyServerAlias
 
-    $ServiceAccountName = Register-ServiceAccount -ValidateExists `
-        -Account $ServiceAccountName
+    $AccountName = Register-ServiceAccount -ValidateExists `
+        -Account $AccountName
 
-    $ServiceAccountPassword = Register-ServiceAccountPassword `
-        -Account $ServiceAccountName `
-        -Password $ServiceAccountPassword
+    $AccountPassword = Register-ServiceAccountPassword `
+        -Account $AccountName `
+        -Password $AccountPassword
 
     # Create Keytab
     $ResultCreateKeytab = New-Keytab `
-        -Account $ServiceAccountName `
+        -Account $AccountName `
         -Principal $PolicyServerObject.UPN `
-        -Password $ServiceAccountPassword `
-        -Outfile "$($ToolBoxConfig.Files)\$($ServiceAccountName).keytab"
+        -Password $AccountPassword `
+        -Outfile "$($ToolBoxConfig.Files)\$($AccountName).keytab"
 
     # Create Krb5 Configuration file
     $ResultCreateKrb5Conf = New-Krb5Conf `
         -Forest $ToolBoxConfig.ParentDomain `
         -KDC $ToolBoxConfig.Domain `
-    -Outfile "$($ToolBoxConfig.Files)\$($ServiceAccountName)-krb5.conf"
+        -Outfile "$($ToolBoxConfig.Files)\$($AccountName)-krb5.conf"
 
 # Dump Kerberos Files
 } elseif($Tool -eq "kerbdump") {
