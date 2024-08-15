@@ -53,7 +53,7 @@ The current version of this tool has only been tested on PowerShell 5.1 and 7.1.
    
    
    Options
-      -noninteractive                Suppress prompts. Does not include prompts for undefined variables.
+      -noninteractive                Suppress prompts. Required variables must be provided in configuration file.
       -configfile                    Configuration file containing predefined parameters vand values. Default: main.conf
       -debug                         Enable debug logging and additional features
       -help                          Print tool help
