@@ -37,22 +37,48 @@ The current version of this tool has only been tested on PowerShell 5.1 and 7.1.
 1. The console will display the available Tools and Options.
     ```pwsh
     Welcome to the Keyfactor Delivery MSAE PowerShell Toolbox! Select one of the tools below to get started. To get more information about each tool, select the README.
-
-    Tools
-        acctcreate           Create and configure a new service account to use in an MSAE integration.
-        kerbcreate           Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values.
-        kerbdump             Dump the content of an existing keytab file.
-
-    Options
-        -PolicyServer        Configurable. EJBCA Policy Server hostname containing the MSAE alias. Ex: policy-server.keyfactor.com
-        -PolicyServerAlias   Configurable. Name of configured msae alias in EJBCA.
-        -ServiceAccount      Configurable. Active Directory service account.
-        -TemplateComputer    Configurable. Computer context autoenrollment template name.
-        -ComputerGroup       Configurable. Computer context autoenrollment security group.
-        -EnrollmentContext   Autoenrollment context
-        -NonInteractive      Suppress prompts. Does not include prompts for undefined variables.
-        -Configfile          Configuration file containing predefined parameters vand values. Default: main.conf
-        -Help
+   
+   .\toolkit [tool] [options]
+   
+   Tools
+      validate                       Validate an existing, or partially configured, MSAE integration.
+    
+   Utilities
+      acctcreate                     Create and configure a new service account to use in an MSAE integration.
+      cepconfig                      Configure the Certificate Enrollment Policy (CEP) endpoint (EJBCA).
+      kerbcreate                     Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values.
+      kerbdump                       Dump the contents of an existing keytab file.
+      tempcreate                     Clone an existing template or create a new certificate template based on a Computer or User context.
+      tempperms                      Grants autoenrollment permissions to a defined security group on an existing certificate template.
+   
+   
+   Options
+      -noninteractive                Suppress prompts. Does not include prompts for undefined variables.
+      -configfile                    Configuration file containing predefined parameters vand values. Default: main.conf
+      -debug                         Enable debug logging and additional features
+      -help                          Print tool help
+   
+   Configuration File
+     The following values can be prepopulated in the config file in the section name from the description.
+   
+      Name                           Service Account. Active Directory service account.
+      Password                       Service Account. Active Directory service account password.
+      Expiration                     Service Account. Days the service account will be valid for (Account Creation).
+      OrgUnit                        Service Account. Common Name, or Distinguished Name, of service account organization unit in Active Directory.
+      Hostname                       Policy Server. EJBCA Policy Server hostname containing the MSAE alias. Ex: policy-server.keyfactor.com.
+      Alias                          Policy Server. Name of configured msae alias in EJBCA.
+      Policy                         Policy Server. Name of EJBCA Policy Name configured in the msae alias.
+      Keytab                         Kerberos. Absolute path to keytab.
+      Krb5                           Kerberos. Absolute path to krb5 conf.
+      Context                        Template. Group Policy configuration context. Options: Computer or User
+      Computer                       Template. Computer context autoenrollment template name.
+      ComputerGroup                  Template. Computer context autoenrollment security group name.
+      User                           Template. User context autoenrollment template name.
+      UserGroup                      Template. User context autoenrollment security group name.
+   
+   Examples
+   .\toolkit.ps1 acctcreate
+   .\toolkit.ps1 validate -configfile .\tests\testing.conf -noninteractive
     ```
 
 1. Run a specific tool using one of the positional parameters with all console prompts
@@ -60,26 +86,14 @@ The current version of this tool has only been tested on PowerShell 5.1 and 7.1.
     .\toolkit.ps1 acctcreate
     ```
 
-## Parameters
-
-The available parmeter values that can be passed in one of the two methods below can be viewed with `-help`
-
 ### Configuration File
 
-A configuration file is provided to allow the prepoluation of parameter values. This reduces the number of prompts that may appear asking for values when a tool is selected. It is recommended to update this configuration file when an available variable defined in the file has a known value.
+A configuration file is provided to allow the prepopulate of parameter values. This reduces the number of prompts that may appear asking for values when a tool is selected. It is recommended to update this configuration file when an available variable defined in the file has a known value.
 
 * Leave empty configurations commented out if they do not have a value
 
 ```pwsh
 .\toolkit.ps1 acctcreate -configfile "prod.conf"
-```
-
-### Commond Line
-
-Parameter values can be passed on the CLI when launching a tool
-
-```pwsh
-.\toolkit.ps1 acctcreate -PolicyServer "ejbca.policyserver.com" -ServiceAccount "ra-service"
 ```
 
 ## Logging
@@ -89,13 +103,9 @@ Parameter values can be passed on the CLI when launching a tool
 * Configuration different log levels include INFO and DEBUG.
 
 ## Under Development
-### Configuration Tool
+### Configuration Wizard
 
 This will allow the user to completely deploy EJBCA MSAE in their enterprise environment with the MSAE Tool Kit. There might be limitations based on existing enterprise Role-Based Access Controls (RBAC).
-
-### Testing Tool
-
-This option will allow a user to test auto-enrollment using MSAE. Additionally, users will be provided the option to use the Testing tool directly after the validation or configuration tool has been complete without having to restart the Tool Kit. 
 
 ## Support
 

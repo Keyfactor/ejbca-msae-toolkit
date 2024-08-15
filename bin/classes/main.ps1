@@ -1,44 +1,33 @@
-## Need to add validation on LogLevl and LogDirectory
-
 class WriteLog {
     [String]$LogDirectory
-    [String]$Logger
-    [String]$LogFile = "main.log"
+    [String]$LogFile
     [String]$LogLevel = "INFO"
+    [String]$LogLogger
     [String]$Message
-    [String]$DefaultColor = "Yellow"
+    [String]$FontColor
+    [String]$LogPath
+    [String]$DefaultColor = "Gray"
     [Object]$ConsoleColors = @{
         Warning = "Yellow"
     }
-
-    # Update after file and path are passed during construction
-    static [String]$LogPath
-    static [String]$DefaultConsole = $false
+    [Boolean]$OutputConsole = $false
     
     # Empty constructor
     WriteLog(){}
-        
-    WriteLog([String]$LogDir){
-        $this.LogDirectory = $LogDir
-        [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
-    }
-    WriteLog([String]$LogDir, [String]$LogFile){
+    WriteLog([String]$LogDir, [String]$LogFile, [String]$LogLogger, [String]$LogLevel){
         $this.LogFile = $LogFile
         $this.LogDirectory = $LogDir
-        [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
-    }
-    WriteLog([String]$LogDir, [String]$LogFile, [String]$LogLevel){
-        $this.LogFile = $LogFile
-        $this.LogDirectory = $LogDir
+        $this.LogLogger = $LogLogger
         $this.LogLevel = $LogLevel
-        [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
+        $this.LogPath = "${LogDir}\${LogFile}"
     }
-    WriteLog([String]$LogDir, [String]$LogFile, [String]$LogLevel, [String]$Logger){
+    WriteLog([String]$LogDir, [String]$LogFile, [String]$LogLogger, [String]$LogLevel, [String]$Console){
         $this.LogFile = $LogFile
         $this.LogDirectory = $LogDir
+        $this.LogLogger = $LogLogger
         $this.LogLevel = $LogLevel
-        $this.Logger = $Logger
-        [WriteLog]::LogPath = "$($this.LogDirectory)\$($this.LogFile)"
+        $this.OutputConsole = $Console
+        $this.LogPath = "${LogDir}\${LogFile}"
     }
 
     # write last message to console
@@ -46,94 +35,94 @@ class WriteLog {
         Write-Host $($this.Message) -ForegroundColor $this.DefaultColor
         $this.Message = $null
     }
-    # write last message to console but change color
     Console([String]$Color){
         Write-Host $($this.Message) -ForegroundColor $Color
         $this.Message = $null
     }
-    Failed([String[]]$Messages){
-        $Color = "Red"
-        $OutputConsole = $True
-        $this.WriteToLog($Messages,"INFO",$Color,$OutputConsole)
-    }
-    Success([String[]]$Messages){
-        $Color = "Green"
-        $OutputConsole = $True
-        $this.WriteToLog($Messages,"INFO",$Color,$OutputConsole)
-    }
     Info([String[]]$Messages){
-        $OutputConsole = $this.DefaultConsole
-        $this.WriteToLog($Messages,"INFO",$this.DefaultColor,$OutputConsole)
+        $this.WriteToLog($Messages,"INFO",$this.DefaultColor,$false)
     }
     Info([String[]]$Messages, [Boolean]$Console){
-        $OutputConsole = $Console
-        $this.WriteToLog($Messages,"INFO",$this.DefaultColor,$OutputConsole)
+        #$Console = $Console
+        $this.WriteToLog($Messages,"INFO",$this.DefaultColor,$Console)
+    }
+    Warn(){
+        Write-Host $($this.Message) -ForegroundColor "Yellow"
+        $this.Message = $null
     }
     Warn([String[]]$Messages){
-        $OutputConsole = $this.DefaultConsole
-        $this.WriteToLog($Messages,"WARN",$this.DefaultColor,$OutputConsole)
+        $this.WriteToLog($Messages,"WARN","Yellow",$false)
     }
     Warn([String[]]$Messages, [Boolean]$Console){
-        $OutputConsole = $Console
-        $this.WriteToLog($Messages,"WARN","Yellow",$OutputConsole)
+        #$Console = $Console
+        $this.WriteToLog($Messages,"WARN","Yellow",$Console)
     }
     Debug([String[]]$Messages){
-        $OutputConsole = $this.DefaultConsole
         if($this.LogLevel -eq "DEBUG"){
-            $this.WriteToLog($Messages,"DEBUG",$this.DefaultColor,$OutputConsole)
+            $this.WriteToLog($Messages,"DEBUG",$this.DefaultColor,$false)
         }
     }
     Error([String[]]$Messages){
-        $Color = $this.DefaultColor
-        $OutputConsole = $this.DefaultConsole
-        $this.WriteToLog($Messages,"ERROR",$Color,$OutputConsole)
-        
+        $this.WriteToLog($Messages,"ERROR",$this.DefaultColor,$false)
     }
     Error([String[]]$Messages, [Boolean]$Console){
-        $OutputConsole = $Console
-        $this.WriteToLog($Messages,"ERROR","Red",$OutputConsole)
+        #$Console = $Console
+        $this.WriteToLog($Messages,"ERROR","Red",$Console)
     }
     Exception([object]$Exception){
-        $OutputConsole = $this.DefaultConsole
         $Messages = (
             "Exception caught $($Exception.ScriptStackTrace)",
             $($Exception[0].Exception)
         )
-        $this.WriteToLog($Messages,"ERROR",$this.DefaultColor,$OutputConsole)
+        $this.WriteToLog($Messages,"ERROR","Red",$True)
     }
-
+    Failed([String[]]$Messages){
+        $this.WriteToLog($Messages,"INFO","Red",$True)
+    }
+    Success(){
+        Write-Host $($this.Message) -ForegroundColor "Green"
+        $this.Message = $null
+    }
+    Success([String[]]$Messages){
+        $this.WriteToLog($Messages,"INFO","Green",$True)
+    }
+    Validate([String]$Result, [String]$Status){
+        $Color = $this.Color
+        switch($Status){
+            'Passed'    { $Color = "Green" }
+            'Failed'    { $Color = 'Red' }
+            'Skipped'   { $Color = 'DarkGray' }
+            'Warning'   { $Color = 'Yellow' }
+            'Not Tested'{ $Color = 'Yellow' }
+            default { throw [System.Exception] "Invalid status. It must be passed, failed, or skipped."}
+        }
+        $this.WriteToLog("[$Status] $Result","VALIDATION",$Color,$this.OutputConsole)
+    }
     hidden WriteToLog (
         [String[]]$Messages,
         [String]$LogLevel,
         [String]$Color,
-        [Bool]$OutputConsole
+        [Boolean]$OutputConsole
     ) {
-        $Path = [WriteLog]::LogPath
+        $Path = $this.LogPath
+        $Logger = $this.Logger
+
+        # Filter invoking function object for entries with command name and select first entry
+        # Assumption is the third entry with a command value is the invoking function name
+        # Update logger name to use new command name or use original if command 
+        $Command = ((Get-PSCallStack)[2].Command).Replace("-","")
+        if($Command){ # update logger to use the command name
+            $Logger = "$($this.LogLogger).$($Command)"
+        } else { # update logger to use the original logger
+            $Logger = $this.LogLogger
+        }
         foreach($Message in $Messages){
             $TimeStamp = (Get-Date).toString("yyyyMMdd HH:mm:ss")
-            $LogMessage = "$TimeStamp $LogLevel [$($this.Logger)] $Message"
+            $LogMessage = "$TimeStamp $LogLevel [$Logger] $Message"
             $LogMessage | Out-File -FilePath $Path -Append -Encoding utf8
 
-            #if($this.OutputConsole){
-            if($OutputConsole){
-                Write-Host $Message -ForegroundColor $Color
-            }
+            if($OutputConsole){ Write-Host $Message -ForegroundColor $Color }
         }
         $this.Message = $Message
-    }
-}
-
-class ValidationCheck {
-    [String] $Name
-    [String] $DisplayName
-    [String] $Description
-    [String] $Type
-    [String] $Status = "Not Checked"
-    [String] $Results = "Not Checked"
-    [String] $ResultsColor = "Gray"
-
-    ValidationCheck(){}
-    ValidationCheck([String] $Name){
-        $this.Name = $Name
     }
 }

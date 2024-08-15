@@ -2,16 +2,15 @@
 # Write operating to console when running interactive so user knows what is happening
 if($NonInteractive){Write-Host "Creating service account..." -ForegroundColor Yellow}
 
-$PolicyServerObject= Register-PolicyServer -ValidateAvailableSpn -IncludeAlias `
-    -Server $PolicyServer `
-    -Alias $PolicyServerAlias
+$PolicyServerObject= Register-PolicyServer -ValidateAvailableSpn `
+    -Server $PolicyServer 
 
-$ServiceAccount = Register-ServiceAccount `
-    -Account $ServiceAccount
+$AccountName = Register-ServiceAccount `
+    -Account $AccountName
 
 $CreateServiceAccount = New-ServiceAccount `
-    -Name $ServiceAccount `
-    -Password $ServiceAccountPassword `
+    -Name $AccountName `
+    -Password $AccountPassword `
     -Spn $PolicyServerObject.Spn `
-    -OrgUnit $ServiceAccountOrgUnit `
+    -OrgUnit $AccountOrgUnit `
     -NoConfirm $NonInteractive

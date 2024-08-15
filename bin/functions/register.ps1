@@ -1,6 +1,3 @@
-
-$LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory, $ToolBoxConfig.LogFiles.Main, $ToolBoxConfig.LogLevel)
-
 function Register-PolicyServer {
     param(
         # Variables to register
@@ -9,28 +6,31 @@ function Register-PolicyServer {
 
         # Messages 
         [Parameter(Mandatory=$false)][String]$ServerMessage = "Enter the FQDN of the EJBCA CEP Server",
-        [Parameter(Mandatory=$false)][String]$ServerMessageColor = "Gray",
-        [Parameter(Mandatory=$false)][String]$AliasMessage = "Enter the FQDN of the EJBCA MSAE alias",
-        [Parameter(Mandatory=$false)][String]$AliasMessageColor = "Gray",
-
-        # Switches
+        [Parameter(Mandatory=$false)][String]$ServerMessageColor = $FontColor.Base,
+        [Parameter(Mandatory=$false)][String]$AliasMessage = "Enter the name of the configured EJBCA MSAE alias",
+        [Parameter(Mandatory=$false)][String]$AliasMessageColor = $FontColor.Base,
+        
+        # Options
         [Parameter(Mandatory=$false)][Switch]$IncludeAlias,
         [Parameter(Mandatory=$false)][Switch]$ValidateAvailableSpn
     )
 
-    $LoggerRegisterPolicyServer = $LoggerFunctions
-    $LoggerRegisterPolicyServer.Logger = "KF.Toolkit.Function.RegisterPolicyServer"
-
-    # Strings
-    $DefaultPolicyServerMessage = "Would you like to use the default policy server '{0}'?"
-    $ServicePrincipalNameNotUnique = "The EJBCA policy server service principal name '{0}' is already configured on '{1}'.`nProvide a different name"
+    $ServicePrincipalNameNotUnique = "The EJBCA policy server service principal name '{0}' is already configured on '{1}'.`nProvide a different hostname."
+    $RegistrationType = "Policy Server"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-        if([String]::IsNullOrEmpty($Server)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Server)){
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            exit
+        
+        } elseif([String]::IsNullOrEmpty($Server)){
             $Server = Read-HostPrompt `
                 -Message $ServerMessage `
                 -Color $ServerMessageColor
-        } 
+            $RegistrationServer = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Server))"
+
+        } else { $RegistrationServer = "$($Strings.RegisterImported -f ($RegistrationType, $Server))" }
 
         # Create service principal name and search AD for existing policy server name
         $ServicePrincipalName = "HTTP/$Server"
@@ -47,7 +47,7 @@ function Register-PolicyServer {
                     }
                 }
             } catch {
-                $ServerMessage = $_; $ServerMessageColor = "Yellow"
+                $ServerMessage = $_; $ServerMessageColor = $FontColor.Warn
                 $LoggerRegisterPolicyServer.Error($_)
                 $Server = $null 
             }
@@ -55,31 +55,39 @@ function Register-PolicyServer {
     
     } until ($Server)
 
-    $LoggerRegisterPolicyServer.Info("Setting PolicyServer=$Server")
-
     $UniversalPrincipalName = "$ServicePrincipalName@$($ToolBoxConfig.Domain.ToUpper())"
     $TlsUri = "https://$Server"
     $EjbcaUri = "https://$Server/ejbca"
 
-    $LoggerRegisterPolicyServer.Debug("Service principal name $ServicePrincipalName is not already assigned to an account in $($ToolBoxConfig.Domain) and is free to use.") 
+    $LoggerFunctions.Debug("Service principal name $ServicePrincipalName is not already assigned to an account in $($ToolBoxConfig.Domain) and is free to use.") 
     if(Test-ParentDomain -and ((Get-ADDomain).ChildDomains).Length){
-        $LoggerRegisterPolicyServer.Warn("It may exist in one of the child domains.")
+        $LoggerFunctions.Warn("It may exist in one of the child domains.")
     } else {
-        $LoggerRegisterPolicyServer.Warn("It may exist somewhere in another child domain or in the parent domain.")
+        $LoggerFunctions.Warn("It may exist somewhere in another child domain or in the parent domain.")
     }
+
+    $LoggerFunctions.Success($RegistrationServer)
 
     # Get msae alias if switch provided 
     if($IncludeAlias){
-        if([String]::IsNullOrEmpty($Alias)){
+        $RegistrationType = "Policy Server Alias"
+        $RegistrationVariable = $RegistrationType.Replace(' ','')
+
+        if($NonInteractive -and [String]::IsNullOrEmpty($Alias)){
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            exit
+        
+        } elseif([String]::IsNullOrEmpty($Alias)){
             $Alias = Read-HostPrompt `
                 -Message $AliasMessage `
                 -Color $AliasMessageColor
-        } 
+            $RegisterAlias = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Alias))" 
+            
+        } else { $RegisterAlias = "$($Strings.RegisterImported -f ($RegistrationType, $Alias))" }
         
-        $LoggerRegisterPolicyServer.Info("Setting PolicyServerAlias=$Alias")
+        $LoggerFunctions.Success($RegisterAlias)
         $AliasUri = "$EjbcaUri/msae/CEPService?$Alias"
     }
-
     $ServerAttributesObject = [PSCustomObject]@{
         Uri = $TlsUri
         EjbcaUri = $EjbcaUri
@@ -88,7 +96,8 @@ function Register-PolicyServer {
         SPN = $ServicePrincipalName
         UPN = $UniversalPrincipalName
     }
-    $LoggerRegisterPolicyServer.Debug(("Setting policy server values: $($ServerAttributesObject|Out-TableString)"))
+
+    $LoggerFunctions.Debug(("Policy server values: $($ServerAttributesObject|Out-ListString)"))
 
     return $ServerAttributesObject
 }
@@ -100,22 +109,28 @@ function Register-ServiceAccount {
 
         # Messages 
         [Parameter(Mandatory=$false)][String]$Message = "Enter the name of the MSAE Service Account",
-        [Parameter(Mandatory=$false)][String]$MessageColor = "Gray",
-        # Switches
+        [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base,
+
+        # Options
         [Parameter(Mandatory=$false)][Switch]$ValidateNonExistent,
         [Parameter(Mandatory=$false)][Switch]$ValidateExists
     )
 
-    $LoggerRegisterServiceAccount = $LoggerFunctions
-    $LoggerRegisterServiceAccount.Logger = "KF.Toolkit.Function.ServiceAccount"
+    $RegistrationType = "Account Name"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-        # get service account name if it doesnt already exist
-        if([String]::IsNullOrEmpty($Account)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Account)){
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            exit
+        
+        } elseif([String]::IsNullOrEmpty($Account)){
             $Account = Read-HostPrompt `
                 -Message $Message `
                 -Color $MessageColor 
-        }
+            $RegistrationAccount = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Account))"
+
+        } else { $RegistrationAccount = "$($Strings.RegisterImported -f ($RegistrationType, $Account))" }
         try {
 
             # test account for white space
@@ -124,26 +139,26 @@ function Register-ServiceAccount {
                 -Value $Account
 
             # Test for existing account
-            $LoggerRegisterServiceAccount.Debug("Attempting to validate provided ServiceAccount=$Account")
-            Get-AdUser -Identity $Account | Out-Null
+            $LoggerFunctions.Debug("Attempting to validate provided $RegistrationType '$Account'")
+            Get-AdUser -Identity $Account -ErrorAction Stop | Out-Null
 
             if(-not $ValidateExists){ # empty account name and try again if it already exists
-                $Message = "Service account '$($Account)' already exists. Please provide another name"; $MessageColor = "Yellow"
-                $LoggerRegisterServiceAccount.Info($Message)
+                $Message = "$($Strings.AlreadyExists -f ($RegistrationType, $Account))"; $MessageColor = $FontColor.Warn
+                $LoggerFunctions.Info($Message)
                 $Account = $null
             }
         
         } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
-            if($SValidateExists){
-                $Message = "Service account '$($Account)' does not exist. Please provide a different service account name."; $MessageColor = "Yellow"
-                $LoggerRegisterServiceAccount.Error($Message)
+            if($ValidateExists){
+                $Message = "$($Strings.DoesNotExist -f ($RegistrationType, $Account))"; $MessageColor = $FontColor.Warn
+                $LoggerFunctions.Error($Message)
                 $Account = $null
             }
         }
 
     } until ($Account)
 
-    $LoggerRegisterServiceAccount.Info("Setting ServiceAccount=$Account")
+    $LoggerFunctions.Success($RegistrationAccount)
     return $Account
 }
 
@@ -152,21 +167,33 @@ function Register-ServiceAccountPassword {
         [Parameter(Mandatory=$true)][String]$Account,
         [Parameter(Mandatory=$true)][AllowEmptyString()][String]$Password,
         [Parameter(Mandatory=$false)][String]$Message = "Enter the password for the MSAE service account",
-        [Parameter(Mandatory=$false)][String]$Color = "Gray",
+        [Parameter(Mandatory=$false)][String]$Color = $FontColor.Base,
         [Parameter(Mandatory=$false)][Switch]$Validate,
         [Parameter(Mandatory=$false)][Switch]$Secure
     )
 
-    $LoggerRegisterServiceAccountPassword = $LoggerFunctions
-    $LoggerRegisterServiceAccountPassword.Logger = "KF.Toolkit.Function.RegisterServiceAccountPassword"
+    $RegistrationType = "Account Password"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     try{
         do {
-            if([String]::IsNullOrEmpty($Password)){
-                $Password = Read-HostPrompt `
-                    -Message $Message `
-                    -Color $Color
-            }
+            if($NonInteractive -and [String]::IsNullOrEmpty($Password)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+            } elseif([String]::IsNullOrEmpty($Password)){
+                if($Secure){
+                    $Password = Read-HostPrompt -Secure `
+                        -Message $Message `
+                        -Color $Color
+                } else { 
+                    $Password = Read-HostPrompt `
+                        -Message $Message `
+                        -Color $Color
+                }
+                $RegistrationPassword = $($Strings.RegisterUserProvided -f ($RegistrationType, $Password))
+
+            } else { $RegistrationPassword = $($Strings.RegisterImported -f ($RegistrationType, $Password)) }
 
             # Convert to secure string
             if($Secure -or $Validate){
@@ -175,11 +202,11 @@ function Register-ServiceAccountPassword {
                     -AsPlainText `
                     -Force
 
-                $LoggerRegisterServiceAccountPassword.Debug("Converted plaint text password to a secure string.")
+                $LoggerFunctions.Debug("Converted plaint text password to a secure string.")
             }
             
             if($Validate){
-                $LoggerRegisterServiceAccountPassword.Debug("Testing password for service account: $Account.")
+                $LoggerFunctions.Debug("Testing password for service account: $Account.")
 
                 # Build PSCredential and test password
                 $Credential = New-Object `
@@ -189,17 +216,17 @@ function Register-ServiceAccountPassword {
                 try {
 
                     Get-ADUser -Identity $Account -Credential $Credential | Out-Null
-                    $LoggerRegisterServiceAccountPassword.Debug("Successfully tested $Account password.")
+                    $LoggerFunctions.Debug("Successfully tested $Account password.")
 
                 } catch [System.Security.Authentication.AuthenticationException] {
-                    $Message = "Incorrect password provided for $Account. Provide a different password"; $MessageColor = "Yellow"
-                    $LoggerRegisterServiceAccountPassword.Error($Message)
+                    $Message = "Incorrect password provided for $Account. Provide a different password"; $MessageColor = $FontColor.Warn
+                    $LoggerFunctions.Error($Message)
                     $Password = $null
                 }
             } 
         } until($Password)
 
-        $LoggerRegisterServiceAccountPassword.Info("Setting ServiceAccountPassword=$Password")
+        $LoggerFunctions.Success($RegistrationPassword)
 
         if($Secure){
             return $SecurePassword
@@ -207,9 +234,69 @@ function Register-ServiceAccountPassword {
             return $Password
         }
     } catch {
-        $LoggerRegisterServiceAccountPassword.Exception($_)
+        $LoggerFunctions.Exception($_)
         throw
     }
+}
+
+function Register-ServiceAccountOrgUnit {
+    param(
+        # Variables to register
+        [Parameter(Mandatory=$true)][AllowEmptyString()][String]$OrgUnit,
+
+        # Messages 
+        [Parameter(Mandatory=$false)][String]$OrgUnitMessage = "Enter the common name, or a partial common name, of the Active Directory Organization Unit to create {0} in",
+        [Parameter(Mandatory=$false)][String]$OrgUnitMessageColor = $FontColor.Base
+
+    )
+
+    $PathMessage = "Multiple organizational units matching the '{0}' query were returned. Select one of the following choices:"
+    $NonExistentMessage = "Org unit '{0}' does not match any existing AD OU. Please provide another org unit"
+    $RegistrationType = "Account Org Unit"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
+
+    do {
+        if($NonInteractive -and [String]::IsNullOrEmpty($OrgUnit)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+        } elseif([String]::IsNullOrEmpty($OrgUnit)){
+            $OrgUnit = Read-HostPrompt `
+                -Message $($OrgUnitMessage -f $Name) `
+                -Color $OrgUnitMessageColor
+            $Cached = $false # store boolean so full path can be used in registration later instead of partial string
+        } else { $Cached = $true }
+
+        # search organization units based on provided search string
+        #$ResultsServiceAccountOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($OrgUnit)*'").DistinguishedName
+        $LoggerFunctions.Info("Searching for organization units like '$OrgUnit'.")
+        $ResultsServiceAccountOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($OrgUnit)*'").DistinguishedName
+
+        # multiple results found
+        if($ResultsServiceAccountOrgUnitSearch.Count -gt 1){
+            $ServiceAccountOrgUnitPath = Read-HostPromptMultiSelection `
+                -Message "$($PathMessage -f $OrgUnit)" `
+                -Selections $ResultsServiceAccountOrgUnitSearch
+        
+        # no results found
+        } elseif(-not $ResultsServiceAccountOrgUnitSearch.Count) {
+            $OrgUnitMessage = "$($NonExistentMessage -f $OrgUnit)" ; $OrgUnitMessageColor = $FontColor.Warn
+            $LoggerRegisterServiceAccountOrgUnit.Error($Message)
+            $OrgUnit = $null
+
+        } else {
+            $ServiceAccountOrgUnitPath = $ResultsServiceAccountOrgUnitSearch
+        }
+
+    } until ($OrgUnit)
+
+    switch($Cached){
+        $true {     $RegistrationOrgUnit = "$($Strings.RegisterUserProvided -f ($RegistrationType, $ServiceAccountOrgUnitPath))" }
+        $false {    $RegistrationOrgUnit = "$($Strings.RegisterImported -f ($RegistrationType, $ServiceAccountOrgUnitPath))" }
+    }
+
+    $LoggerFunctions.Success($RegistrationOrgUnit)
+    return $ServiceAccountOrgUnitPath
 }
 
 function Register-File {
@@ -217,38 +304,45 @@ function Register-File {
         [Parameter(Mandatory=$true)][AllowEmptyString()][String]$FilePath,
         [Parameter(Mandatory=$true)][String]$FileType,
         [Parameter(Mandatory=$false)][String]$Message="Enter the file path",
-        [Parameter(Mandatory=$false)][String]$MessageColor="Gray",
+        [Parameter(Mandatory=$false)][String]$MessageColor=$FontColor.Base,
         [Parameter(Mandatory=$false)][Switch]$Validate
     )
 
-    $LoggerFile = $LoggerFunctions
-    $LoggerFile.Logger = "KF.Toolkit.Function.RegisterFile"
+    $RegistrationType = $FileType
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
         try {
-            if([String]::IsNullOrEmpty($FilePath) -or ($ToolBoxConfig.UseDefaults -eq $false)){
+            if($NonInteractive -and [String]::IsNullOrEmpty($FilePath)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+            } elseif([String]::IsNullOrEmpty($FilePath) -or ($ToolBoxConfig.UseDefaults -eq $false)){
                 $FilePath = Read-HostPrompt `
                     -Message $Message `
                     -Color $MessageColor
-            }
+
+                $RegistrationFile= "$($Strings.RegisterUserProvided -f ($RegistrationType, $FilePath))"
+            } else {  $RegistrationFile= "$($Strings.RegisterImported -f ($RegistrationType, $FilePath))" }
+            
             if($Validate){
                 $File = Get-Childitem -Path $FilePath -ErrorAction Stop
-                $LoggerFile.Info("Found $FileType $FilePath")
+                $LoggerFunctions.Info($Strings.NotValidated -f ($RegistrationType, $FilePath))
                 $FilePath = $File.FullName
             }
         }
         catch [System.Management.Automation.ItemNotFoundException]{
             if($Validate){
-                $Message = "Provided path '$($FilePath)' does not exist. Please provide a different path"; $MessageColor = "Yellow"
-                $LoggerFile.Error($Message)
+                $Message = $Strings.DoesNotExist -f ($RegistrationType, $FilePath); $MessageColor = $FontColor.Warn
+                $LoggerFunctions.Error($Message)
                 $FilePath = $null
             } else {
-                $LoggerFile.Info("Provided $FilePath path was not validated")
+                $LoggerFunctions.Warn($Strings.NotValidated -f ($RegistrationType, $FilePath))
             }
         }   
     } until($FilePath)
 
-    $LoggerFile.Info("Setting $FileType=$FilePath")
+    $LoggerFunctions.Success($RegistrationFile)
     return $FilePath
 }
 
@@ -256,102 +350,147 @@ function Register-AutoenrollSecurityGroup {
     param(
         [Parameter(Mandatory)][AllowEmptyString()][String]$Group,
         [Parameter(Mandatory=$false)][String]$Message = "Enter the name for the Security Group to add to the certificate template with autoenrollment permissions",
-        [Parameter(Mandatory=$false)][String]$MessageColor = "Gray",
+        [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base,
+        [Parameter(Mandatory=$false)][ValidateSet("Computer","User")][String]$Context = "Computer",
         [Parameter(Mandatory=$false)][Switch]$Validate
     )
 
-    $LoggerAutoenrollSecurityGroup = $LoggerFunctions
-    $LoggerAutoenrollSecurityGroup.Logger = "KF.Toolkit.Function.RegisterAutoenrollSecurityGroup"
+    $RegistrationType = "$Context Security Group"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do{
         try {
-            if([String]::IsNullOrEmpty($Group)){
+            if($NonInteractive -and [String]::IsNullOrEmpty($Group)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+            } elseif([String]::IsNullOrEmpty($Group)){
                 $Group = Read-HostPrompt `
                     -Message $Message `
                     -Color $MessageColor
-            }
+                $RegistrationGroup = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Group))"
+
+            } else { $RegistrationGroup = "$($Strings.RegisterImported -f ($RegistrationType, $Group))" }
+
             if($Validate){
                 $Group = (Get-ADGroup -Identity $Group).Name
-                $LoggerAutoenrollSecurityGroup.Info("Found '$Group' in active directory")
+                $LoggerFunctions.Info(($Strings.Found -f ($RegistrationType, $Group)))
             }
         }
         catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
-            $Message = "Security group: '$SecurityGroup' does not exist. Provide another name"; $MessageColor = "Yellow"
-            $LoggerAutoenrollSecurityGroup.Error($Message)
+            $Message = $Strings.DoesNotExist -f ($RegistrationType, $Group); $MessageColor = $FontColor.Warn
+            $LoggerFunctions.Error($Message)
             $Group = $null
         } 
     } until($Group)
 
-    $LoggerAutoenrollSecurityGroup.Info("Setting TemplateGroup=$Group")
-
-    return $SecurityGroup
+    $LoggerFunctions.Success($RegistrationGroup)
+    return $Group
 }
 
 function Register-CertificateTemplate {
     param(
         [Parameter(Mandatory)][AllowEmptyString()][String]$Template,
-        [Parameter(Mandatory=$false)][String]$Message=$StringsPrompts.GetCertificateTemplate,
+        [Parameter(Mandatory=$false)][String]$Message="Enter the name for the new {0} context certiticate template",
+        [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base,
+        [Parameter(Mandatory=$true)][ValidateSet("Computer","User")][String]$Context="Computer",
         [Parameter(Mandatory=$false)][Bool]$Existing=$true
+        
     )
-    $LoggerCertificateTemplate = $LoggerFunctions
-    $LoggerCertificateTemplate.Logger = "KF.Toolkit.Function.RegisterCertificateTemplate"
+
+    $RegistrationType = "Template $Context"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
 
     do {
-
-        if([String]::IsNullOrEmpty($Template)){
+        if($NonInteractive -and [String]::IsNullOrEmpty($Template)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+        } elseif([String]::IsNullOrEmpty($Template)){
             $Template = Read-HostPrompt `
-                -Message $Message `
+                -Message "$($Message -f $Context)" `
                 -Color $MessageColor
-        }
+            $RegistrationTemplate = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Template))"
+        } else { $RegistrationTemplate = "$($Strings.RegisterImported -f ($RegistrationType, $Template))" }
 
         # Check for existing template
-        $ExistingTemplateCheck = Test-CertificateTemplate $Template
+        $ExistingTemplateCheck = Test-CertificateTemplateExists $Template
 
         if($Existing -and $ExistingTemplateCheck){
-            $LoggerCertificateTemplate.Info(($StringsObject.Found -f ("Certificate template",$Template)))
+            $LoggerFunctions.Info(($Strings.Found -f ($RegistrationType,$Template)))
 
         } elseif($Existing -and -not $ExistingTemplateCheck) {
-            $LoggerCertificateTemplate.Error(($StringsObject.DoesNotExist -f ("Certificate template",$Template)), $True)
+            $Message = "$($Strings.DoesNotExist -f ($RegistrationType,$Template))"; $MessageColor = $FontColor.Warn
+            $LoggerFunctions.Error($Message)
             $Template = $null
 
         } elseif(-not $Existing -and $ExistingTemplateCheck) {
-            $Message = "$($StringsObject.AlreadyExists -f ("Certificate template",$Template))"; $MessageColor = "Yellow"
-            $LoggerCertificateTemplate.Error($Message)
+            $Message = "$($Strings.AlreadyExists -f ($RegistrationType,$Template))"; $MessageColor = $FontColor.Warn,
+            $LoggerFunctions.Error($Message)
             $Template = $null
 
         } elseif(-not $Existing -and -not $ExistingTemplateCheck)  {
-            $LoggerCertificateTemplate.Info(($StringsObject.ObjectAvailable -f $ServiceAccount))
+            $LoggerFunctions.Info(($Strings.Available -f $Template))
 
         } else {
-            throw "Failed all conditional checks when registering Certificate Template."
+            throw [System.Exception] $Exception.ConditionalChecks
         }
     } until($Template)
 
+    $LoggerFunctions.Success($RegistrationTemplate)
     return $Template
 }
 
+function Register-CertificateTemplateContext {
+    param(
+        [Parameter(Mandatory)][AllowEmptyString()][String]$Context,
+        [Parameter(Mandatory=$false)][String]$Message = "Select the certificate enrollment context",
+        [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base
+    )
+
+    $LoggerFunctions.Debug(("Current Computer: $($env:COMPUTERNAME)","Current User: $($env:USERNAME)"))
+
+    $RegistrationType = "Template Context"
+    $RegistrationVariable = $RegistrationType.Replace(' ','')
+    
+    do {
+        if($NonInteractive -and [String]::IsNullOrEmpty($Context)){
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                exit
+        
+        } elseif([String]::IsNullOrEmpty($Context)){
+            $LoggerFunctions.Debug("Getting certificate template context value from user input.")
+
+            $Context = Read-HostChoice `
+                -Message $Message `
+                -Choices "Computer","User" `
+                -HelpText "Uses '$($env:COMPUTERNAME)' permissions for computer enrollment","Uses '$($env:USERNAME)' permissions for user enrollment" `
+                -Default 1
+
+            $RegistrationTemplate = "$($Strings.RegisterUserProvided -f ($RegistrationType, $Context))"
+
+        } else { 
+            if($Context -notin  ("Computer","User")){
+                $LoggerFunctions.Warn("Provided ertificate template context was '$Context'. It mmust be either 'Computer' or 'User'.", $true)
+                $Context = $null
+            } else {
+                $RegistrationTemplate = "$($Strings.RegisterImported -f ($RegistrationType, $Context))" 
+            }
+        }
+
+    } until($Context)
+
+    $LoggerFunctions.Success($RegistrationTemplate)
+    return $Context
+}
+
 function Register-CertificateEnrollmentPolicyServer {
-    <#
-    .Synopsis
-        Configure enrollment policy server
-    .Description
-        Configures EJBCA policy server endpoint for autoenrollment. Returns a 'true' result if successful or a Windows error code if unsuccessful.
-    .Parameter PolicyServerObject
-        Object containing the different values derived from the EJBCA hostname
-    .Parameter Context
-        Configures policy server for Machine or User context
-    .Example
-       Register-CertificateEnrollmentPolicyServer -PolicyServerObject $PolicyServerAttributes -Context $EnrollmentContext
-    #>
     param(
         [Parameter(Mandatory)][Object]$PolicyServerObject,
         [Parameter(Mandatory)][ValidateSet("Machine","User")][String]$Context
     )
 
-    $LoggerCertificateEnrollmentPolicyServer = $LoggerFunctions
-    $LoggerCertificateEnrollmentPolicyServer.Logger = "KF.Toolkit.Function.RegisterCertificateEnrollmentPolicyServer"
-    $LoggerFunctions.Debug("$($MyInvocation.InvocationName) parameters: $($MyInvocation.BoundParameters|Out-TableString)")
-
+    $RegistrationType = "Certificate Enrollment Policy Server"
     try {
 
         $ResultsAddCep = Add-CertificateEnrollmentPolicyServer `
@@ -377,7 +516,6 @@ function Register-CertificateEnrollmentPolicyServer {
         }
 
         $LoggerFunctions.Debug("Parsed policy server configuration error: $($ErrorRecord|Out-TableString)")
-
         return $ErrorRecord
     }
 }
