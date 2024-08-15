@@ -79,10 +79,11 @@ $Global:AvailableTools = @(
         Type = "utility"
         Name = "kerbdump"
         Script = "tool_kerberos.ps1"
-        Description = "Dump the contents of an existing keytab file."
+        Description = "Dump the contents of an existing keytab  and krb5 conf file."
         DescriptionAdditional = @()
         Prerequisites = @(
             "Existing keytab file."
+            "Existing krb5 conf file."
         )
         RequiredVars = @(
             "Keytab",

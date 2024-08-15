@@ -107,7 +107,7 @@ function Test-Kerberos {
 
             } elseif($KeytabContents.Keys.Count -gt 1 -and $KeytabContents.Keys -contains $Aes256Sha1String){
                 $Test.Status = "The keytab contains more than one encryption key."
-                $Test.Result = $Result.Failed
+                $Test.Result = $Result.Warning
 
             } else {
                 $Test.Status = $ValidationMessages.UnknownFailure
@@ -184,7 +184,6 @@ function Test-Kerberos {
 
         $LoggerValidation.Validate("$($Test.Title): $($Test.Status)", $Test.Result)
         $Index++
-        
     }
 }
 
@@ -329,10 +328,22 @@ function Test-CertificateTemplates {
     foreach ($_ in $Validation.CertTemplates.Tests.PSObject.Properties) {
 
         $Test = $_.Value
-        $Test | Add-Member -Name "Status" -Type NoteProperty -Value ""           
+        $Test | Add-Member -Name "Status" -Type NoteProperty -Value ""   
 
-        # DNS A Record
-        if($Test.Title -eq $ValidationTitles.CertTemplateAutoenroll){
+        if($Test.Title -eq $ValidationTitles.CertTemplateGroupMembership){
+            # Get object from list if a match exists
+            $NetBiosSecurityGroup = $GroupMembership | where {$_.IdentityReference -eq $NetBiosSecurityGroupName}
+
+            if($NetBiosSecurityGroup){
+                $Test.Status = "$CommonName is a member of '$NetBiosSecurityGroupName'."
+                $Test.Result = $Result.Passed
+            
+            } else {
+                $Test.Status = "$CommonName is not a member of '$NetBiosSecurityGroupName'."
+                $Test.Result = $Result.Failed
+            }
+
+        } elseif($Test.Title -eq $ValidationTitles.CertTemplateAutoenroll){
             $TemplateTest = Test-CertificateTemplatePermissions `
                 -Template $Template `
                 -NetBiosName $NetBiosSecurityGroupName 
@@ -341,35 +352,10 @@ function Test-CertificateTemplates {
                 $Test.Status = "'$NetBiosSecurityGroupName' is configured with autoenrollment permissions on '$Template'."
                 $Test.Result = $Result.Passed
             } else {
-                $Test.Status = "'$NetBiosSecurityGroupName' is configured with autoenrollment permissions on '$Template'."
+                $Test.Status = "'$NetBiosSecurityGroupName' is not configured with autoenrollment permissions on '$Template'."
                 $Test.Result = $Result.Failed
             }
-
-        } elseif($Test.Title -eq $ValidationTitles.CertTemplateGroupMembership){
-            if($Validation.CertTemplates.Tests.CertTemplateAutoenroll.Result -eq $Result.Passed){
-
-                # Get object from list if a match exists
-                $NetBiosSecurityGroup = $GroupMembership | where {$_.IdentityReference -eq $NetBiosSecurityGroupName}
-
-                if($NetBiosSecurityGroup){
-                    $Test.Status = "$CommonName is a member of '$NetBiosSecurityGroupName'."
-                    $Test.Result = $Result.Passed
-                
-                } else {
-                    $Test.Status = "$CommonName is not a member of '$NetBiosSecurityGroupName'."
-                    $Test.Result = $Result.Failed
-                }
-
-            } else {
-                if($Validation.CertTemplates.Tests.CertTemplateAutoenroll.Result -eq "Skipped"){
-                    $Test.Status = "Skipped because test '$($Validation.CertTemplates.Tests.CertTemplateAutoenroll.Title)' was skipped."
-
-                } elseif($Validation.CertTemplates.Tests.CertTemplateAutoenroll.Result -eq "Failed"){
-                    $Test.Status = "Skipped because test '$($Validation.CertTemplates.Tests.CertTemplateAutoenroll.Title)' failed."
-                }
-                $Test.Result = $Result.Skipped
-            }
-        }
+        } 
 
         $LoggerValidation.Validate("$($Test.Title): $($Test.Status)", $Test.Result)
         $Index++

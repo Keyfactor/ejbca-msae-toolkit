@@ -92,6 +92,7 @@ class WriteLog {
             'Passed'    { $Color = "Green" }
             'Failed'    { $Color = 'Red' }
             'Skipped'   { $Color = 'DarkGray' }
+            'Warning'   { $Color = 'Yellow' }
             'Not Tested'{ $Color = 'Yellow' }
             default { throw [System.Exception] "Invalid status. It must be passed, failed, or skipped."}
         }

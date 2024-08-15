@@ -4,6 +4,7 @@ $Global:Result = @{
     Failed = "Failed"
     NotTested = "Not Tested"
     Skipped = "Skipped"
+    Warning = "Warning"
 }
 
 $Global:Categories = @{
@@ -118,14 +119,14 @@ $Global:Validation = @{
     CertTemplates = [PSCustomObject]@{
         Title = $Categories.CertTemplates
         Tests = [PSCustomObject]@{
-            CertTemplateAutoenroll = [PSCustomObject]@{
-                Title = $ValidationTitles.CertTemplateAutoenroll
-                Description = "Authoenrollment 'Allow' access is required for a security group to enroll a certificate through Group Policy."
-                Result = $Result.NotTested
-            }
             CertTemplateGroupMembership = [PSCustomObject]@{
                 Title = $ValidationTitles.CertTemplateGroupMembership
                 Description = "A computer, or user, must belong to a security group with autoenrollment 'Allow' access on a certificate template mapped in the EJBCA MSAE Alias."
+                Result = $Result.NotTested
+            }
+            CertTemplateAutoenroll = [PSCustomObject]@{
+                Title = $ValidationTitles.CertTemplateAutoenroll
+                Description = "Authoenrollment 'Allow' access is required for a security group to enroll a certificate through Group Policy."
                 Result = $Result.NotTested
             }
         }

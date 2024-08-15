@@ -542,14 +542,13 @@ function Out-Krb5Conf {
             
             # Permitted encryption types
             if($Line -match "(permitted_enctypes)+"){
-                if($Line -like "*aes256-cts-hmac-sha1-96*"){
-                    $Contents.PermittedKeyTypes = $Line.Split("=").Trim()[1] 
-                }
+                $PermittedKeyTypes = $Contents.PermittedKeyTypes = $Line.Split("=").Trim()[1] 
+                $Contents.PermittedKeyTypes = $PermittedKeyTypes.Split()
             }
 
             # Realms
             if($Line -eq "[realms]"){
-                $Realm = [PSCustomObject]@{Name = ""; Kdcs = @(); Default = ""}
+                $Realm = [PSCustomObject]@{Name = $null; Kdcs = $null; Default = $null}
                 while($Line.Trim() -ne "}"){
                     if($Line.Split('=')[0].Trim() -like $Domain){
                         $Realm.Name = $Line.Split('=')[0].Trim()
@@ -580,7 +579,7 @@ function Out-Krb5Conf {
         $LoggerFunctions.Exception($_)
     }
 
-    $LoggerFunctions.Info("The krb5 conf contains the following values: $($Contents|Out-TableString)")
+    $LoggerFunctions.Info("The krb5 conf contains the following values: $($Contents|Out-ListString)")
 
     return $Contents
 }

@@ -11,12 +11,14 @@ $AccountName = Register-ServiceAccount -ValidateExists `
 $KerberosKeytab = Register-File `
     -Message "Enter the full path to the keytab file" `
     -FilePath $KerberosKeytab `
-    -FileType "Kerberos Keytab" 
+    -FileType "Kerberos Keytab" `
+    -Validate
 
 $KerberosKrb5 = Register-File `
     -Message "Enter the full path to the krb5 file" `
     -FilePath $KerberosKrb5 `
-    -FileType "Kerberos Krb5" 
+    -FileType "Kerberos Krb5" `
+    -Validate
 
 $TemplateContext = Register-CertificateTemplateContext `
     -Context $TemplateContext
@@ -76,5 +78,5 @@ foreach($Category in $Validation.GetEnumerator()){
     }
 })
 
-Write-Host "The following test case(s) failed:" -NoNewLine
-$ValidationResults | Format-List
+# Write-Host "The following test case(s) failed:" -NoNewLine
+# $ValidationResults | Format-List

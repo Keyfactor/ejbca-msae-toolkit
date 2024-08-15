@@ -176,7 +176,8 @@ function Get-TlsCertificate {
         [Parameter(Mandatory=$false)][String]$OutDir
     )
 
-     $LoggerFunctions.Info("Attempting to download tls certificate from ${Uri}.")
+    $LoggerFunctions.Info("Attempting to download tls certificate from ${Uri}.")
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
     switch($PSVersionTable.PSVersion.Major){ # switch Core and Framework
         {$_ -ge 6} { # Core version
@@ -204,13 +205,9 @@ function Get-TlsCertificate {
             try {
                 $LoggerFunctions.Info("Inovking GetResponse on '$($WebRequest.RequestUri)'")
                 $WebRequest.GetResponse() | Out-Null
+            } catch [System.Net.WebException]{
             } catch {
                 $LoggerFunctions.Exception($_)
-                if($_.Exception.Message -like '*Exception calling "GetResponse"*'){ # get specific string for trimming
-                    Write-Error "$($_.Exception.Message.Substring($_.Exception.Message.IndexOf(':')+1).Replace('"','').Trim())"
-                } else {
-                    Write-Error $_
-                }
                 exit
             }
             switch($Source){
@@ -515,7 +512,7 @@ function Test-CertificateTemplatePermissions {
     # Get template directory object
     $ConfigContext = (Get-ADRootDSE).rootDomainNamingContext
     $CertificateTemplates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ConfigContext"
-    $ProvidedTemplate = $CertificateTemplates.Children.where({$_.Name -eq $Template})
+    $ProvidedTemplate = $CertificateTemplates.Children.where({$_.displayName -eq $Template})
     $LoggerFunctions.Debug($($ProvidedTemplate.ObjectSecurity.Access|Out-ListString))
 
     # Loop through Access rules that only contain the name of the provided security group
