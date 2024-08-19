@@ -1,82 +1,97 @@
-# Create Loggers
-$LoggerMain = [WriteLog]::New($ToolBoxConfig.LogDirectory, 
-                              $ToolBoxConfig.LogFiles.Main, 
-                              $ToolBoxConfig.LogLoggers.Main, 
-                              $ToolBoxConfig.LogLevel
-                              )
-$LoggerFunctions = [WriteLog]::New($ToolBoxConfig.LogDirectory,
-                                   $ToolBoxConfig.LogFiles.Main,
-                                   $ToolBoxConfig.LogLoggers.Functions,
-                                   $ToolBoxConfig.LogLevel
-                                  )
-$LoggerValidation = [WriteLog]::New($ToolBoxConfig.LogDirectory,
-                                    $ToolBoxConfig.LogFiles.Validation,
-                                    $ToolBoxConfig.LogLoggers.Validation,
-                                    $ToolBoxConfig.LogLevel,
-                                    $True
-                                  )
+################################################################################################
+#region Create Loggers
+################################################################################################
+# Main
+$LoggerMain = [WriteLog]::New(
+    $ToolBoxConfig.LogDirectory, 
+    $ToolBoxConfig.LogFiles.Main, 
+    $ToolBoxConfig.LogLoggers.Main, 
+    $ToolBoxConfig.LogLevel
+)
+# Functions
+$LoggerFunctions = [WriteLog]::New(
+    $ToolBoxConfig.LogDirectory,
+    $ToolBoxConfig.LogFiles.Main,
+    $ToolBoxConfig.LogLoggers.Functions,
+    $ToolBoxConfig.LogLevel
+)
 
+# Validation logger with print to console enabled and log to different file
+$LoggerValidation = [WriteLog]::New(
+    $ToolBoxConfig.LogDirectory,
+    $ToolBoxConfig.LogFiles.Validation,
+    $ToolBoxConfig.LogLoggers.Validation,
+    $ToolBoxConfig.LogLevel,
+    $True
+)
+#endregion
+################################################################################################
+
+################################################################################################
+#region Update start of log based on LogLevel
+################################################################################################
+# DEBUG
 if($ToolBoxConfig.Debug){
     $DebugPreference = "SilentlyContinue"
-
-    # Remove previous log file and create new
-    try {
-        Get-ChildItem $ToolBoxConfig.LogDirectory | ForEach-Object{ Remove-Item "$($ToolBoxConfig.LogDirectory)\$_" -ErrorAction Stop | Out-Null }
-    } catch [ItemNotFoundException]{
-        continue
-    }
-
     $LoggerMain.Debug((
         "The toolkit was launched with parameters: $($($MyInvocation.BoundParameters | Format-List | Out-String).Trim())",
         "Toolkit configuration variables: `n$($($ToolBoxConfig | Format-List| Out-String).Trim())",
         "Executing pre-tasks."
     ))
 }
+
+# INFO
 else {
     $LoggerMain.Info(("","-----------------New Script Run $((Get-Date).ToString())------------------","")); Clear-Host
-}  
+}
+#endregion
+################################################################################################
 
-# Import configuration file
+################################################################################################
+#region Import configuration file
+#        - Get values from each section
+#        - Add variable to file if it has a length and the variable is defined as a parameter 
+#          for the script.
+#        - Set each as global variable
+################################################################################################
 $LoggerMain.Info("Importing configuration values from $($ToolBoxConfig.ConfigurationFile).")
 foreach($Configuration in $(Get-Content $ToolBoxConfig.ConfigurationFile -ErrorAction Stop)){
 
-    # build namespace using config section name if name is Main
-    if($Configuration -match "(\[(.*?)\])" -and $Configuration -notmatch "(Main)" -and $Configuration -notlike "#*"){
-        $Namespace = $Configuration.Split("[")[1].Split("]")[0].Replace(" ","")
-    }
-
-    # get values from each section
     if($Configuration -match "(=)" -and $Configuration -notlike "#*"){
         $ConfigVariable = $Configuration.Split("=")[0].Trim() # Variable name is before '='
-        # Variable value is after '='. Strip quotes to consider empty if nothing remains after quotes removed
-        $ConfigValue = $Configuration.split("=",2)[1].Replace('"',"").Replace("'","").Trim() 
+        $ConfigValue = $Configuration.split("=",2)[1].Replace('"',"").Replace("'","").Trim() # Variable value is after '='. Strip quotes to consider empty if nothing remains after quotes removed
 
-        # Add variable to file if it has a length and the variable is defined as a parameter for the script
         if($ConfigValue.Length -and ($ConfigVariable -in $AvailableConfigValues.Name)){
             Set-Variable -Name $ConfigVariable -Value $ConfigValue -Scope Script # Set all imported variables as Gloabl
             $LoggerMain.Info("Imported '$($ConfigVariable)' from configuration file as '$("$ConfigVariable = $ConfigValue")'")
         }
     }
 }
+#endregion
+################################################################################################
 
-
-# Import Functions
-$LoggerMain.Debug("Importing functions...")
-
-Get-ChildItem $ToolBoxConfig.Functions -Filter *.ps1 | `
-    ForEach-Object {. (Join-Path $ToolBoxConfig.Functions $_.Name)} | Out-Null
-
-# Set Interactive Mode
-if(Assert-DesktopMode){
-    $ToolBoxConfig.DesktopMode = $true
-    $LoggerMain.Debug("The toolkit is running in Desktop Mode. Certain features will be available.")
-} else {
-    $LoggerMain.Debug("The toolkit is not running in Desktop Mode. Certain features will not be available.")
+################################################################################################
+#region Update files directory
+################################################################################################
+if($FilesDirectory){
+    $LoggerMain.Info("Changing files directory from '$($ToolBoxConfig.Files)' to '$FilesDirectory'")
+    $ToolBoxConfig.Files = $FilesDirectory
 }
+#endregion
+################################################################################################
 
-# Import required Modules
+################################################################################################
+#region Import functions and modules
+################################################################################################
+# functions
+$LoggerMain.Debug("Importing functions...")
+Get-ChildItem $ToolBoxConfig.Functions -Filter *.ps1 | ForEach-Object {. (Join-Path $ToolBoxConfig.Functions $_.Name)} | Out-Null
+
+# modules
 $LoggerMain.Debug("Importing required Builtin Powershell modules.")
 foreach($Module in $ToolBoxConfig.Modules){
     $ImportResult = Import-Module -Name $Module -ErrorAction Stop -PassThru
     $LoggerMain.Debug("Successfully imported module $($ImportResult.Name)")
 }
+#endregion
+################################################################################################

@@ -27,7 +27,8 @@ Switch ($TemplateContext) {
     "Computer" {
         $TemplateName = Register-CertificateTemplate `
             -Template $TemplateComputer `
-            -Context "Computer"
+            -Context "Computer" `
+            -CheckAlreadyExists:$true
 
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateComputerGroup `
@@ -37,7 +38,8 @@ Switch ($TemplateContext) {
     "User" {
         $TemplateName = Register-CertificateTemplate `
             -Template $TemplateUser `
-            -Context "User"
+            -Context "User" `
+            -CheckAlreadyExists:$true
 
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateUserGroup `
@@ -47,7 +49,6 @@ Switch ($TemplateContext) {
 }
 
 Write-Host "`n[Validation]"
-
 Test-ServiceAccount `
     -Account $AccountName `
     -ServicePrincipalName $PolicyServerObject.SPN

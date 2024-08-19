@@ -257,10 +257,8 @@ function New-ServiceAccount {
         ServicePrincipalName = $Spn
         Path = $ServiceAccountOrgUnitPath
     }
-
-    Write-Host "`n[Review and Confirm]"
-
     if(-not $NoConfirm){
+        Write-Host "`n[Review and Confirm]"
         Write-Host "Review the following attributes for account creation. Clear your session, or update your configuration file, if a cached value is incorrect: `n$($CreateObject|Out-ListString)`n" 
         $CreateConfirmation = Read-HostChoice `
             -Choices "create account","exit script" `
@@ -269,6 +267,8 @@ function New-ServiceAccount {
     }
     
     if($CreateConfirmation -or $NoConfirm){
+        Write-Host "`n[Creating Account]"
+        
         $ResultCreateServiceAccount = New-AdUser `
             -Name $CreateObject.Name `
             -AccountExpirationDate $CreateObject.Expiration `
@@ -279,10 +279,10 @@ function New-ServiceAccount {
             -PasswordNeverExpires:$true `
             -Enabled:$true 
 
-        $LoggerFunctions.Success("`nSuccessfully created service account '$Name'.")
+        $LoggerFunctions.Success("`Successfully created service account $Name.")
         return $true
     } else {
-        $LoggerFunctions.Info("User chose not to create service account '$Name'.")
+        $LoggerFunctions.Info("User chose not to create service account $Name.")
     }
 }
 

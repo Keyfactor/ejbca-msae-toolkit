@@ -1,21 +1,20 @@
-
 # Create Kerberos files
+Write-Host "`n" -NoNewLine; Write-Host "[Registering Required Variables]"
 if(($Tool -eq 'kerbcreate')){
 
-    # Write operating to console when running interactive so user knows what is happening
-    if($NonInteractive){Write-Host "Creating kerberos files..." -ForegroundColor Yellow}
-
-    $PolicyServerObject= Register-PolicyServer -IncludeAlias `
+    $PolicyServerObject= Register-PolicyServer `
         -Server $PolicyServer `
         -Alias $PolicyServerAlias
 
-    $AccountName = Register-ServiceAccount -ValidateExists `
-        -Account $AccountName
+    $AccountName = Register-ServiceAccount `
+        -Account $AccountName `
+        -ValidateExists
 
     $AccountPassword = Register-ServiceAccountPassword `
         -Account $AccountName `
         -Password $AccountPassword
 
+    Write-Host "`n" -NoNewLine; Write-Host "[Creating Kerberos Files]"
     # Create Keytab
     $ResultCreateKeytab = New-Keytab `
         -Account $AccountName `
@@ -32,9 +31,6 @@ if(($Tool -eq 'kerbcreate')){
 # Dump Kerberos Files
 } elseif($Tool -eq "kerbdump") {
 
-# Write operating to console when running interactive so user knows what is happening
-if($NonInteractive){Write-Host "Dumping kerberos files..." -ForegroundColor Yellow}
-
     # Get existing keytab file
     $KerberosKeytab = Register-File `
         -Message "Enter the full path to the keytab file" `
@@ -48,23 +44,22 @@ if($NonInteractive){Write-Host "Dumping kerberos files..." -ForegroundColor Yell
         -FileType "Kerberos Krb5" `
         -Validate
 
+    Write-Host "`n" -NoNewLine; Write-Host "[Keytab Contents]"
     $ContentsKeytab = Out-Keytab $KerberosKeytab
+    Write-Host "Keys: $($ContentsKeytab.Keys -join ', ')" -ForegroundColor Green
+    Write-Host "Principal: $($ContentsKeytab.Principal)" -ForegroundColor Green
+
+    Write-Host "`n[Krb5.conf Contents]"
     $ContentsKrb5 = Out-Krb5Conf $KerberosKrb5
-
-    Write-Host "`nKeytab Contents:`n"
-    Write-Host "Keys: $($ContentsKeytab.Keys -join ', ')"
-    Write-Host "Principal: $($ContentsKeytab.Principal)"
-
-    Write-Host "`nKrb$ Conf Contents:`n"
     $ContentsKrb5 | foreach {
-        Write-Host "Default domain: $($_.DefaultDomain)"
-        Write-Host "Permitted key types: $($_.PermittedKeyTypes -join ', ')"
-        Write-Host "Realms: "
+        Write-Host "Default domain: $($_.DefaultDomain)" -ForegroundColor Green
+        Write-Host "Permitted key types: $($_.PermittedKeyTypes -join ', ')" -ForegroundColor Green
+        Write-Host "Realms: " -ForegroundColor Green
         foreach($R in $_.Realms){
-            Write-Host "  Name: $($R.Name)"
-            Write-Host "  Kdcs: $($R.Kdcs -join ', ')"
-            Write-Host "  Default: $($R.Default)"
+            Write-Host "  Name: $($R.Name)" -ForegroundColor Green
+            Write-Host "  Kdcs: $($R.Kdcs -join ', ')" -ForegroundColor Green
+            Write-Host "  Default: $($R.Default)" -ForegroundColor Green
         }
-        Write-Host "Domain realms: $($_.DomainRealms -join ', ')`n"
+        Write-Host "Domain realms: $($_.DomainRealms -join ', ')`n" -ForegroundColor Green
     }
 }

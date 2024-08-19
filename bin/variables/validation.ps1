@@ -38,11 +38,12 @@ $Global:ValidationTitles = @{
     CepDnsRecord = "DNS A Record"
     CepTlsPortAccess = "TLS Port Access"
     CepBuildChain = "Build Chain"
-    CepTrustStore = "Installed in Trust Store"
+    CepCommonNameMatch = "Common Name Match"
 
     # Certificate Template
     CertTemplateAutoenroll = "Autoenrollment Permissions"
     CertTemplateGroupMembership = "Security Group Membership"
+    CertTemplateMachineType = "Machine Type Template"
 }
 
 $Global:Validation = @{
@@ -127,6 +128,11 @@ $Global:Validation = @{
             CertTemplateAutoenroll = [PSCustomObject]@{
                 Title = $ValidationTitles.CertTemplateAutoenroll
                 Description = "Authoenrollment 'Allow' access is required for a security group to enroll a certificate through Group Policy."
+                Result = $Result.NotTested
+            }
+            CertTemplateMachineType = [PSCustomObject]@{
+                Title = $ValidationTitles.CertTemplateMachineType
+                Description = "A certificate template used to enroll a computer certificate (computer context) must have an enrollment flag for 'Machine Type'."
                 Result = $Result.NotTested
             }
         }
