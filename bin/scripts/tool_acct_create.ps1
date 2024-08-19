@@ -1,7 +1,4 @@
-
-# Write operating to console when running interactive so user knows what is happening
-if($NonInteractive){Write-Host "Creating service account..." -ForegroundColor Yellow}
-
+Write-Host "`n[Registering Required Variables]"
 $PolicyServerObject= Register-PolicyServer -ValidateAvailableSpn `
     -Server $PolicyServer 
 

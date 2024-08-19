@@ -300,7 +300,7 @@ function Test-CepServerEndpoint {
 
 function Test-CertificateTemplates {
     param(
-        [Parameter(Mandatory=$true)][Uri]$Template,
+        [Parameter(Mandatory)][String]$Template,
         [Parameter(Mandatory)][String]$Group,
         [Parameter(Mandatory)][String]$ForestDn,
         [Parameter(Mandatory=$false)][ValidateSet("Computer","User")][String]$Context="Computer"
@@ -354,6 +354,26 @@ function Test-CertificateTemplates {
             } else {
                 $Test.Status = "'$NetBiosSecurityGroupName' is not configured with autoenrollment permissions on '$Template'."
                 $Test.Result = $Result.Failed
+            }
+        } elseif($Test.Title -eq $ValidationTitles.CertTemplateMachineType){
+            $TemplateAttributes = ($(certutil -v -Template $Template) | Out-String).Split([Environment]::NewLine, [StringSplitOptions]::RemoveEmptyEntries).Trim()
+
+            if($Context -eq "Computer"){
+                if($TemplateAttributes -contains "CT_FLAG_MACHINE_TYPE -- 40 (64)"){
+                    $Test.Status = "'$Template' is configured for computer context enrollment because it has the CT_FLAG_MACHINE_TYPE flag."
+                    $Test.Result = $Result.Passed
+                } else {
+                    $Test.Status = "'$Template' is configured for user context enrollment because it does not have the CT_FLAG_MACHINE_TYPE flag."
+                    $Test.Result = $Result.Failed
+                }
+            } else {
+                if($TemplateAttributes -notcontains "CT_FLAG_MACHINE_TYPE -- 40 (64)"){
+                    $Test.Status = "'$Template' is configured for user context enrollment because it does not have the CT_FLAG_MACHINE_TYPE flag."
+                    $Test.Result = $Result.Passed
+                } else {
+                    $Test.Status = "'$Template' is configured for computer context enrollment because it has the CT_FLAG_MACHINE_TYPE flag."
+                    $Test.Result = $Result.Failed
+                }
             }
         } 
 

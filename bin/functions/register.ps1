@@ -15,13 +15,13 @@ function Register-PolicyServer {
         [Parameter(Mandatory=$false)][Switch]$ValidateAvailableSpn
     )
 
-    $ServicePrincipalNameNotUnique = "The EJBCA policy server service principal name '{0}' is already configured on '{1}'.`nProvide a different hostname."
     $RegistrationType = "Policy Server"
     $RegistrationVariable = $RegistrationType.Replace(' ','')
+    $ServicePrincipalNameNotUnique = "{0}: {1} already exists as an SPN on {2}. Provide a different hostname"
 
     do {
         if($NonInteractive -and [String]::IsNullOrEmpty($Server)){
-            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
             exit
         
         } elseif([String]::IsNullOrEmpty($Server)){
@@ -39,17 +39,13 @@ function Register-PolicyServer {
         if($ValidateAvailableSpn){
             $Searcher = [adsisearcher]"(servicePrincipalName=*)"
             $SearchResults = $Searcher.Findall()
-            try {
-                foreach($Result in $SearchResults){
-                    $Entry = $Result.GetDirectoryEntry()
-                    if(($Entry.servicePrincipalName -eq $ServicePrincipalName) -and ($Entry.Name -ne $Server)){
-                        Write-Error -Message ($ServicePrincipalNameNotUnique -f ($ServicePrincipalName, $($Entry.Name)))  -ErrorAction Stop
-                    }
+            foreach($Result in $SearchResults){
+                $Entry = $Result.GetDirectoryEntry()
+                if(($Entry.servicePrincipalName -eq $ServicePrincipalName) -and ($Entry.Name -ne $Server)){
+                    $ServerMessage = $ServicePrincipalNameNotUnique -f ($RegistrationType, $Server, $($Entry.Name)); $ServerMessageColor = $FontColor.Warn
+                    $LoggerFunctions.Error($ServerMessage, $NonInteractive)
+                    $Server = $null 
                 }
-            } catch {
-                $ServerMessage = $_; $ServerMessageColor = $FontColor.Warn
-                $LoggerRegisterPolicyServer.Error($_)
-                $Server = $null 
             }
         }
     
@@ -66,7 +62,7 @@ function Register-PolicyServer {
         $LoggerFunctions.Warn("It may exist somewhere in another child domain or in the parent domain.")
     }
 
-    $LoggerFunctions.Success($RegistrationServer)
+    $LoggerFunctions.Register($RegistrationServer)
 
     # Get msae alias if switch provided 
     if($IncludeAlias){
@@ -74,7 +70,7 @@ function Register-PolicyServer {
         $RegistrationVariable = $RegistrationType.Replace(' ','')
 
         if($NonInteractive -and [String]::IsNullOrEmpty($Alias)){
-            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
             exit
         
         } elseif([String]::IsNullOrEmpty($Alias)){
@@ -85,7 +81,7 @@ function Register-PolicyServer {
             
         } else { $RegisterAlias = "$($Strings.RegisterImported -f ($RegistrationType, $Alias))" }
         
-        $LoggerFunctions.Success($RegisterAlias)
+        $LoggerFunctions.Register($RegisterAlias)
         $AliasUri = "$EjbcaUri/msae/CEPService?$Alias"
     }
     $ServerAttributesObject = [PSCustomObject]@{
@@ -97,7 +93,7 @@ function Register-PolicyServer {
         UPN = $UniversalPrincipalName
     }
 
-    $LoggerFunctions.Debug(("Policy server values: $($ServerAttributesObject|Out-ListString)"))
+    $LoggerFunctions.Debug(("${$RegistrationType}: $($ServerAttributesObject|Out-ListString)"))
 
     return $ServerAttributesObject
 }
@@ -121,7 +117,7 @@ function Register-ServiceAccount {
 
     do {
         if($NonInteractive -and [String]::IsNullOrEmpty($Account)){
-            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
             exit
         
         } elseif([String]::IsNullOrEmpty($Account)){
@@ -144,21 +140,21 @@ function Register-ServiceAccount {
 
             if(-not $ValidateExists){ # empty account name and try again if it already exists
                 $Message = "$($Strings.AlreadyExists -f ($RegistrationType, $Account))"; $MessageColor = $FontColor.Warn
-                $LoggerFunctions.Info($Message)
+                $LoggerFunctions.Error($Message, $NonInteractive)
                 $Account = $null
             }
         
         } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
             if($ValidateExists){
                 $Message = "$($Strings.DoesNotExist -f ($RegistrationType, $Account))"; $MessageColor = $FontColor.Warn
-                $LoggerFunctions.Error($Message)
+                $LoggerFunctions.Error($Message, $NonInteractive)
                 $Account = $null
             }
         }
 
     } until ($Account)
 
-    $LoggerFunctions.Success($RegistrationAccount)
+    $LoggerFunctions.Register($RegistrationAccount)
     return $Account
 }
 
@@ -178,7 +174,7 @@ function Register-ServiceAccountPassword {
     try{
         do {
             if($NonInteractive -and [String]::IsNullOrEmpty($Password)){
-                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
                 exit
         
             } elseif([String]::IsNullOrEmpty($Password)){
@@ -220,13 +216,13 @@ function Register-ServiceAccountPassword {
 
                 } catch [System.Security.Authentication.AuthenticationException] {
                     $Message = "Incorrect password provided for $Account. Provide a different password"; $MessageColor = $FontColor.Warn
-                    $LoggerFunctions.Error($Message)
+                    $LoggerFunctions.Error($Message, $NonInteractive)
                     $Password = $null
                 }
             } 
         } until($Password)
 
-        $LoggerFunctions.Success($RegistrationPassword)
+        $LoggerFunctions.Register($RegistrationPassword)
 
         if($Secure){
             return $SecurePassword
@@ -245,30 +241,30 @@ function Register-ServiceAccountOrgUnit {
         [Parameter(Mandatory=$true)][AllowEmptyString()][String]$OrgUnit,
 
         # Messages 
-        [Parameter(Mandatory=$false)][String]$OrgUnitMessage = "Enter the common name, or a partial common name, of the Active Directory Organization Unit to create {0} in",
-        [Parameter(Mandatory=$false)][String]$OrgUnitMessageColor = $FontColor.Base
+        [Parameter(Mandatory=$false)][String]$Message = "Enter the common name, or a partial common name, of the Active Directory Organization Unit to create {0} in",
+        [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base
 
     )
 
-    $PathMessage = "Multiple organizational units matching the '{0}' query were returned. Select one of the following choices:"
-    $NonExistentMessage = "Org unit '{0}' does not match any existing AD OU. Please provide another org unit"
     $RegistrationType = "Account Org Unit"
     $RegistrationVariable = $RegistrationType.Replace(' ','')
+    $PathMessage = "Multiple organizational units matching the '{0}' query were returned. Select one of the following choices:"
+    $NonExistentMessage = "${RegistrationType}: '{0}' does not match any existing AD OU. Please provide another org unit"
 
     do {
         if($NonInteractive -and [String]::IsNullOrEmpty($OrgUnit)){
-                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
-                exit
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
+            exit
         
         } elseif([String]::IsNullOrEmpty($OrgUnit)){
             $OrgUnit = Read-HostPrompt `
-                -Message $($OrgUnitMessage -f $Name) `
-                -Color $OrgUnitMessageColor
-            $Cached = $false # store boolean so full path can be used in registration later instead of partial string
-        } else { $Cached = $true }
+                -Message $($Message -f $Name) `
+                -Color $MessageColor
+                $RegistrationOrgUnit = $($Strings.RegisterUserProvided -f ($RegistrationType, $OrgUnit))
+
+        } else { $RegistrationOrgUnit = $($Strings.RegisterImported -f ($RegistrationType, $OrgUnit)) }
 
         # search organization units based on provided search string
-        #$ResultsServiceAccountOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($OrgUnit)*'").DistinguishedName
         $LoggerFunctions.Info("Searching for organization units like '$OrgUnit'.")
         $ResultsServiceAccountOrgUnitSearch = (Get-ADOrganizationalUnit -Filter "Name -like '*$($OrgUnit)*'").DistinguishedName
 
@@ -280,8 +276,8 @@ function Register-ServiceAccountOrgUnit {
         
         # no results found
         } elseif(-not $ResultsServiceAccountOrgUnitSearch.Count) {
-            $OrgUnitMessage = "$($NonExistentMessage -f $OrgUnit)" ; $OrgUnitMessageColor = $FontColor.Warn
-            $LoggerRegisterServiceAccountOrgUnit.Error($Message)
+            $Message = "$($NonExistentMessage -f $OrgUnit)"; $MessageColor = $FontColor.Warn
+            $LoggerFunctions.Error($Message, $NonInteractive)
             $OrgUnit = $null
 
         } else {
@@ -290,12 +286,8 @@ function Register-ServiceAccountOrgUnit {
 
     } until ($OrgUnit)
 
-    switch($Cached){
-        $true {     $RegistrationOrgUnit = "$($Strings.RegisterUserProvided -f ($RegistrationType, $ServiceAccountOrgUnitPath))" }
-        $false {    $RegistrationOrgUnit = "$($Strings.RegisterImported -f ($RegistrationType, $ServiceAccountOrgUnitPath))" }
-    }
-
-    $LoggerFunctions.Success($RegistrationOrgUnit)
+    $LoggerFunctions.Register($RegistrationOrgUnit)
+    
     return $ServiceAccountOrgUnitPath
 }
 
@@ -314,7 +306,7 @@ function Register-File {
     do {
         try {
             if($NonInteractive -and [String]::IsNullOrEmpty($FilePath)){
-                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
                 exit
         
             } elseif([String]::IsNullOrEmpty($FilePath) -or ($ToolBoxConfig.UseDefaults -eq $false)){
@@ -322,7 +314,7 @@ function Register-File {
                     -Message $Message `
                     -Color $MessageColor
 
-                $RegistrationFile= "$($Strings.RegisterUserProvided -f ($RegistrationType, $FilePath))"
+                $RegistrationFile = "$($Strings.RegisterUserProvided -f ($RegistrationType, $FilePath))"
             } else {  $RegistrationFile= "$($Strings.RegisterImported -f ($RegistrationType, $FilePath))" }
             
             if($Validate){
@@ -334,7 +326,7 @@ function Register-File {
         catch [System.Management.Automation.ItemNotFoundException]{
             if($Validate){
                 $Message = $Strings.DoesNotExist -f ($RegistrationType, $FilePath); $MessageColor = $FontColor.Warn
-                $LoggerFunctions.Error($Message)
+                $LoggerFunctions.Error($Message, $NonInteractive)
                 $FilePath = $null
             } else {
                 $LoggerFunctions.Warn($Strings.NotValidated -f ($RegistrationType, $FilePath))
@@ -342,7 +334,7 @@ function Register-File {
         }   
     } until($FilePath)
 
-    $LoggerFunctions.Success($RegistrationFile)
+    $LoggerFunctions.Register($RegistrationFile)
     return $FilePath
 }
 
@@ -361,7 +353,7 @@ function Register-AutoenrollSecurityGroup {
     do{
         try {
             if($NonInteractive -and [String]::IsNullOrEmpty($Group)){
-                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
                 exit
         
             } elseif([String]::IsNullOrEmpty($Group)){
@@ -379,12 +371,12 @@ function Register-AutoenrollSecurityGroup {
         }
         catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
             $Message = $Strings.DoesNotExist -f ($RegistrationType, $Group); $MessageColor = $FontColor.Warn
-            $LoggerFunctions.Error($Message)
+            $LoggerFunctions.Error($Message, $NonInteractive)
             $Group = $null
         } 
     } until($Group)
 
-    $LoggerFunctions.Success($RegistrationGroup)
+    $LoggerFunctions.Register($RegistrationGroup)
     return $Group
 }
 
@@ -394,17 +386,17 @@ function Register-CertificateTemplate {
         [Parameter(Mandatory=$false)][String]$Message="Enter the name for the new {0} context certiticate template",
         [Parameter(Mandatory=$false)][String]$MessageColor = $FontColor.Base,
         [Parameter(Mandatory=$true)][ValidateSet("Computer","User")][String]$Context="Computer",
-        [Parameter(Mandatory=$false)][Bool]$Existing=$true
-        
+        [Parameter(Mandatory=$false)][Bool]$CheckAlreadyExists = $false
     )
 
     $RegistrationType = "Template $Context"
     $RegistrationVariable = $RegistrationType.Replace(' ','')
+    $LoggerFunctions.Info("Checking for existing certificates is set to: $CheckAlreadyExists.")
 
     do {
         if($NonInteractive -and [String]::IsNullOrEmpty($Template)){
-                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
-                exit
+            $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
+            exit
         
         } elseif([String]::IsNullOrEmpty($Template)){
             $Template = Read-HostPrompt `
@@ -416,20 +408,20 @@ function Register-CertificateTemplate {
         # Check for existing template
         $ExistingTemplateCheck = Test-CertificateTemplateExists $Template
 
-        if($Existing -and $ExistingTemplateCheck){
-            $LoggerFunctions.Info(($Strings.Found -f ($RegistrationType,$Template)))
+        if($CheckAlreadyExists -and $ExistingTemplateCheck){
+            $LoggerFunctions.Info(($Strings.Found -f ($RegistrationType, $Template)))
 
-        } elseif($Existing -and -not $ExistingTemplateCheck) {
-            $Message = "$($Strings.DoesNotExist -f ($RegistrationType,$Template))"; $MessageColor = $FontColor.Warn
-            $LoggerFunctions.Error($Message)
+        } elseif($CheckAlreadyExists -and -not $ExistingTemplateCheck) {
+            $Message = "$($Strings.DoesNotExist -f ($RegistrationType, $Template))"; $MessageColor = $FontColor.Warn
+            $LoggerFunctions.Error($Message, $NonInteractive)
             $Template = $null
 
-        } elseif(-not $Existing -and $ExistingTemplateCheck) {
-            $Message = "$($Strings.AlreadyExists -f ($RegistrationType,$Template))"; $MessageColor = $FontColor.Warn,
-            $LoggerFunctions.Error($Message)
+        } elseif(-not $CheckAlreadyExists -and $ExistingTemplateCheck) {
+            $Message = "$($Strings.AlreadyExists -f ($RegistrationType, $Template))"; $MessageColor = $FontColor.Warn,
+            $LoggerFunctions.Error($Message, $NonInteractive)
             $Template = $null
 
-        } elseif(-not $Existing -and -not $ExistingTemplateCheck)  {
+        } elseif(-not $CheckAlreadyExists -and -not $ExistingTemplateCheck)  {
             $LoggerFunctions.Info(($Strings.Available -f $Template))
 
         } else {
@@ -437,7 +429,7 @@ function Register-CertificateTemplate {
         }
     } until($Template)
 
-    $LoggerFunctions.Success($RegistrationTemplate)
+    $LoggerFunctions.Register($RegistrationTemplate)
     return $Template
 }
 
@@ -455,7 +447,7 @@ function Register-CertificateTemplateContext {
     
     do {
         if($NonInteractive -and [String]::IsNullOrEmpty($Context)){
-                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $true)
+                $LoggerFunctions.Error(($Strings.UndefinedNonInterfactive -f ($RegistrationType, $RegistrationVariable)), $NonInteractive)
                 exit
         
         } elseif([String]::IsNullOrEmpty($Context)){
@@ -471,7 +463,7 @@ function Register-CertificateTemplateContext {
 
         } else { 
             if($Context -notin  ("Computer","User")){
-                $LoggerFunctions.Warn("Provided ertificate template context was '$Context'. It mmust be either 'Computer' or 'User'.", $true)
+                $LoggerFunctions.Error("Provided ertificate template context was '$Context'. It mmust be either 'Computer' or 'User'.", $NonInteractive)
                 $Context = $null
             } else {
                 $RegistrationTemplate = "$($Strings.RegisterImported -f ($RegistrationType, $Context))" 
@@ -480,13 +472,13 @@ function Register-CertificateTemplateContext {
 
     } until($Context)
 
-    $LoggerFunctions.Success($RegistrationTemplate)
+    $LoggerFunctions.Register($RegistrationTemplate)
     return $Context
 }
 
 function Register-CertificateEnrollmentPolicyServer {
     param(
-        [Parameter(Mandatory)][Object]$PolicyServerObject,
+        [Parameter(Mandatory)][Uri]$AliasUri,
         [Parameter(Mandatory)][ValidateSet("Machine","User")][String]$Context
     )
 
@@ -494,7 +486,7 @@ function Register-CertificateEnrollmentPolicyServer {
     try {
 
         $ResultsAddCep = Add-CertificateEnrollmentPolicyServer `
-            -Url $PolicyServerObject.AliasUri `
+            -Url $AliasUri `
             -Context $Context `
             -AutoEnrollmentEnabled `
             -RequireStrongValidation
@@ -502,20 +494,28 @@ function Register-CertificateEnrollmentPolicyServer {
         return $True
 
     } catch {
-        $LoggerFunctions.Exception($_)
+
+        #$LoggerFunctions.Exception($_)
 
         # Convert error record to string
-        $ErrorMessage = $_.Exception | Out-String
+        $ErrorMessage = $_.Exception.Message | Out-String
+        $LoggerFunctions.Error($ErrorMessage)
 
         # Substring exception message
-        $ErrorHexSearch = $ErrorMessage.Substring($ErrorMessage.IndexOf("0x"))
-        $ErrorMessageSearch = $ErrorMessage.Substring(0,$ErrorMessage.IndexOf("0x"))
-        $ErrorRecord = [PSCustomObject]@{
-            ErrorCode = $ErrorHexSearch.Split()[0]
-            ErrorMessage = $ErrorMessageSearch.Substring($ErrorMessage.LastIndexOf(":")+1).Trim()
-        }
+        $ErrorSearch = $ErrorMessage.Substring(0,$ErrorMessage.IndexOf("0x"))
+        $ErrorSearch.Substring($ErrorSearch.LastIndexOf(":")+1).Trim()
+        #$ErrorHexCode = $ErrorSearch.Split('')[0]
+        #$ErrorMessage = $ErrorSearch.Substring($ErrorSearch.LastIndexOf(":").Split()).Trim()
+        
+        # $ErrorMessage = $ErrorSearch.Split('')[1]
 
-        $LoggerFunctions.Debug("Parsed policy server configuration error: $($ErrorRecord|Out-TableString)")
-        return $ErrorRecord
+        # $ErrorMessageSearch = $ErrorMessage.Substring(0,$ErrorMessage.IndexOf("0x"))
+        # $ErrorRecord = [PSCustomObject]@{
+        #     ErrorCode = $ErrorHexSearch.Split()[0]
+        #     ErrorMessage = $ErrorMessageSearch.Substring($ErrorMessage.LastIndexOf(":")+1).Trim()
+        # }
+
+        # $LoggerFunctions.Debug("Parsed policy server configuration error: $($ErrorRecord|Out-TableString)")
+        return $ErrorHexCode
     }
 }

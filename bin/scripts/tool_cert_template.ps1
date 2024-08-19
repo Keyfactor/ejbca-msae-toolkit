@@ -1,14 +1,19 @@
 
+Write-Host "`n[Registering Required Variables]"
+# Check for existing template if 'tempcreate' passed
+if(($Tool -eq "tempperms")){ $ExistingTemplateCheck = $true }
+
 # Get Template context
 $TemplateContext = Register-CertificateTemplateContext `
     -Context $TemplateContext 
 
+# Get Template and Security Group
 Switch ($TemplateContext) {
     "Computer" {
         $TemplateName = Register-CertificateTemplate `
             -Template $TemplateComputer `
-            -Context "User" `
-            -Existing:$false
+            -Context "Computer" `
+            -CheckAlreadyExists:$ExistingTemplateCheck
 
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateComputerGroup `
@@ -19,11 +24,11 @@ Switch ($TemplateContext) {
         $TemplateName = Register-CertificateTemplate `
             -Template $TemplateUser `
             -Context "User" `
-            -Existing:$false
+            -CheckAlreadyExists:$ExistingTemplateCheck
 
         $TemplateSecurityGroup = Register-AutoenrollSecurityGroup `
             -Group $TemplateUserGroup `
-            -Context "Computer" `
+            -Context "User" `
             -Validate
     }
 }
@@ -32,7 +37,7 @@ Switch ($TemplateContext) {
 if(($Tool -eq "tempcreate")){
 
     # Write operating to console when running interactive so user knows what is happening
-    if($NonInteractive){Write-Host "`nCreating certificate template '$TemplateName'..."}
+    Write-Host "`n[Create Certificate Template]"
     
     $ResultsCreateTemplate = New-CertificateTemplate `
         -DisplayName $TemplateName `
@@ -42,7 +47,7 @@ if(($Tool -eq "tempcreate")){
         -Context "Computer"
 
 } elseif($Tool -eq "tempperms") {
-    if($NonInteractive){Write-Host "`nUpdating certificate template '$TemplateName' autoenrollment permissions..."}
+    Write-Host "`n[Update Certificate Template Permissions]"
 }
 
 $ResultsSetAutoenroll = Set-CertificateTemplatePermissions `

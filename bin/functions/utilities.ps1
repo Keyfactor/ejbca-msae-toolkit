@@ -139,6 +139,23 @@ function Get-WinErrorHex {
     }
 }
 
+function Convert-WindowsError {
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)][String]$Code
+    )
+    process{
+
+        $ErrorHexSearch = $Message.Substring($Message.IndexOf("0x"))
+        $ErrorMessageSearch = $Message.Substring(0,$Message.IndexOf("0x"))
+        $ErrorRecord = [PSCustomObject]@{
+            ErrorCode = $ErrorHexSearch.Split()[0]
+            ErrorMessage = $ErrorMessageSearch.Substring($Message.LastIndexOf(":")+1).Trim()
+        }
+
+        return $ErrorRecord
+    }
+}
+
 function Out-TableString {
     <#
     .Synopsis
@@ -154,11 +171,16 @@ function Out-TableString {
         [Parameter(Mandatory=$true,ValueFromPipeline)][Object]$Table,
         [Parameter(Mandatory=$false)][Boolean]$HideTableHeaders=$false
     )
+
     process {
-        if($HideTableHeaders){
-            "`n$(($Table|Format-Table -HideTableHeaders -AutoSize|Out-String).Trim())"
+        if($Table){
+                if($HideTableHeaders){
+                "`n$(($Table|Format-Table -HideTableHeaders -AutoSize|Out-String).Trim())"
+            } else {
+                "`n$(($Table|Format-Table -AutoSize|Out-String).Trim())"
+            }
         } else {
-            "`n$(($Table|Format-Table -AutoSize|Out-String).Trim())"
+            $LoggerFunctions.Info("Table is empty.")
         }
     }
 }
@@ -192,10 +214,14 @@ function Out-ListString {
         $List | Out-ListString
     #>
     param(
-        [Parameter(Mandatory=$true,ValueFromPipeline)][Object]$List
+        [Parameter(Mandatory=$true, ValueFromPipeline)][Object]$List
     )
     process {
-        "`n$(($List|Format-List|Out-String).Trim())"
+        if($List) {
+                "`n$(($List | Format-List| Out-String).Trim())"
+        } else {
+            $LoggerFunctions.Info("List is empty.")
+        }
     }
 }
 
@@ -287,7 +313,7 @@ Function Read-HostChoice {
     return $Choices[$Selection]
 }
 
-function Read-HostPrompt{
+function Read-HostPrompt {
     param(
         [Parameter(Mandatory=$true)][String]$Message,
         [Parameter(Mandatory=$false)][String]$Color = "Gray",
@@ -324,7 +350,7 @@ function Read-HostPrompt{
     }
 }
 
-function Read-HostPromptMultiSelection{
+function Read-HostPromptMultiSelection {
     param(
         [Parameter(Mandatory=$false)][string]$Message="",
         [Parameter(Mandatory=$false)][string]$Color = "Gray",
@@ -355,6 +381,41 @@ function Read-HostPromptMultiSelection{
         else {
             Write-Host "`nInvalid selection. Enter a number between 1-$($SelectionArray.Count)." -ForegroundColor Yellow
         }
+    }
+}
+
+function Test-DefinedRequiredVariables {
+     <#
+    .Synopsis
+        Tests if a variable is empty
+    .Description
+        Takes an array of variables and checks if a value is assigned. Returns array of undefined variables.
+    .Example
+        Test-RequiredVariables $RequiredVars
+    #>
+    param (
+        [Parameter(Mandatory=$true)][AllowEmptyString()][String[]]$Variables
+    )
+
+    if($Variables){
+        $LoggerFunctions.Debug("Testing required variables.")
+        $undefinedVariables = @()
+        foreach($Var in $Variables){
+            try {
+                Get-Variable $Var -ValueOnly -ErrorAction Stop | Out-Null
+            } catch [System.Management.Automation.ItemNotFoundException]{
+                $undefinedVariables += $Var
+            }
+        }
+
+        if($undefinedVariables){
+            $Message = "The following required variables were not found in the configuration file or as a parameter: $(($undefinedVariables | Sort-Object)  -join ', ')"
+            $LoggerFunctions.Error($Message, $true)
+        } else {
+            $LoggerFunctions.Debug("All required variables are defined")
+        }
+    } else {
+        $LoggerFunctions.Debug("Provided list of variables is empty.")
     }
 }
 

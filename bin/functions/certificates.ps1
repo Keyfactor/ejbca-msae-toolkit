@@ -327,8 +327,7 @@ function New-CertificateTemplate {
         [Parameter(Mandatory)][String]$ForestDn,
         [Parameter(Mandatory=$false)][String]$Group,
         [Parameter(Mandatory=$false)][String]$Duplicate,
-        [Parameter(Mandatory=$true)]
-        [Parameter(Mandatory=$false, ParameterSetName="Duplicate")][ValidateSet("Computer","User")][String]$Context="Computer"
+        [Parameter(Mandatory=$true)][ValidateSet("Computer","User")][String]$Context="Computer"
     )
 
     $LoggerMain.Debug("$($MyInvocation|Out-BoundParameters)")
@@ -344,18 +343,21 @@ function New-CertificateTemplate {
         if($Duplicate){
             $LoggerFunctions.Debug("$($Duplicate|ConvertTo-JSON)")
             $DuplicateTemplate = $TemplatePath.Children.where({$_.displayName -eq $Duplicate})
-            
         }
         else {
 
             # if no duplicate set use default machine and user
-            if($Computer){  $DuplicateTemplate = $TemplatePath.Children.where({ $_.displayName -eq "Computer"}) }
-            else {          $DuplicateTemplate = $TemplatePath.Children.where({ $_.displayName -eq "User"}) }
-            $LoggerFunctions.Debug("Duplicating base template: $($DuplicateTemplate.Name)")
-            
+            if($Context -eq "Computer"){ 
+                $DuplicateTemplate = $TemplatePath.Children.where({ $_.displayName -eq "Computer"}) 
+            } else { 
+                $DuplicateTemplate = $TemplatePath.Children.where({ $_.displayName -eq "User"}) 
+            }
         }
-        $LoggerFunctions.Debug(("$($DuplicateTemplate.Name) attributes: $(($DuplicateTemplate|Select *)|Out-String)").Trim())
-
+        $LoggerFunctions.Debug((
+            "Duplicating base template: $($DuplicateTemplate.displayName)",
+            ("$($DuplicateTemplate.displayName) attributes: $(($DuplicateTemplate|Select *)|Out-String)").Trim()
+        ))
+           
         # Create Template and populate initial values
         $CommonName = $DisplayName.Replace(" ","") # Remove whitespaces from name
         $NewTemplate = $TemplatePath.Create("pKICertificateTemplate", "CN=$CommonName")
@@ -403,7 +405,7 @@ function New-CertificateTemplate {
         $NewTemplate.'msPKI-RA-Signature' = $DuplicateTemplate.'msPKI-RA-Signature'
         $NewTemplate.SetInfo()
 
-        $DuplicateByteProps = $TemplatePath.Children.where({ $_.displayName -eq $DuplicateTemplate.DisplayName}) | Select-Object pKIKeyUsage,pKIExpirationPeriod,pKIOverlapPeriod
+        $DuplicateByteProps = $TemplatePath.Children.where({ $_.displayName -eq $DuplicateTemplate.displayName}) | Select-Object pKIKeyUsage,pKIExpirationPeriod,pKIOverlapPeriod
 
         # update properties values thats cant be set with put
         $NewTemplate.pKIKeyUsage = $DuplicateByteProps.pKIKeyUsage
@@ -507,13 +509,13 @@ function Test-CertificateTemplatePermissions {
         "00000000-0000-0000-0000-000000000000"
     )
 
-    $LoggerFunctions.Info("Testing autoenrollment permissions for ${Template}")
+    $LoggerFunctions.Info("Checking autoenrollment permissions for ${Template}")
 
     # Get template directory object
     $ConfigContext = (Get-ADRootDSE).rootDomainNamingContext
     $CertificateTemplates = [ADSI]"LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$ConfigContext"
     $ProvidedTemplate = $CertificateTemplates.Children.where({$_.displayName -eq $Template})
-    $LoggerFunctions.Debug($($ProvidedTemplate.ObjectSecurity.Access|Out-ListString))
+    $LoggerFunctions.Debug(($($ProvidedTemplate.ObjectSecurity.Access|Out-ListString)))
 
     # Loop through Access rules that only contain the name of the provided security group
     $ProvidedTemplate.ObjectSecurity.Access.where({$_.IdentityReference -eq $NetBiosName}).foreach{

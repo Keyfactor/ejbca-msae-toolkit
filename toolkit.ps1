@@ -1,4 +1,3 @@
-
 <#
 .Synopsis
 Microsoft Authoenrollment Configuration Toolbox
@@ -19,11 +18,15 @@ Param(
     [Switch]$Help
 )
 
+################################################################################################
+#region Toolkit execution
+################################################################################################
 try {
 
     Clear-Host
-
-    # Toolbox Configuration
+    ################################################################################################
+    #region Toolbox Configuration
+    ################################################################################################
     $Global:ToolBoxConfig = [PSCustomObject]@{
         ScriptHome = $PSScriptRoot
         ScriptExit = $false
@@ -59,39 +62,49 @@ try {
         )
         KeytabEncryptionTypes = "AES256"
     }
+    #endregion
+    ################################################################################################
     
-    # Import source scripts
-    . (Join-Path $PSScriptRoot $ToolBoxConfig.Classes -ErrorAction Stop)
-    . (Join-Path $PSScriptRoot $ToolBoxConfig.Variables.Main -ErrorAction Stop)
-
+    ################################################################################################
+    #region Toolkit script validation
+    ################################################################################################
     $ParameterList = (Get-Command -Name $PSCmdlet.MyInvocation.InvocationName).Parameters.Values | where {$_.ParameterSets.Keys -notcontains '__AllParameterSets'}
     $ConfigurableParameters = @(foreach ($Parameter in $ParameterList) {
         if($Parameter.ParameterSets.Keys -contains 'configurable' -and $Parameter.Name -ne 'tool'){
             [PSCustomObject]@{Name = $Parameter.Name.ToLower(); Description = $Parameter.Attributes.HelpMessage}
         }
     })
-
-    # Exit script if tool name provided but a valid option was not provided
+        # Exit script if tool name provided but a valid option was not provided
     if($Tool.Length -and $Tool -notin $AvailableTools.Name){
         Write-Host "Invalid tool parameter provided. The available options are: $($AvailableTools.Name -join ', ')" -ForegroundColor Red
         Write-Host "Type '.\toolkit' or .\toolkit [command] -help' more information" -ForegroundColor Red
         exit 
+    } 
+    #endregion
+    ################################################################################################
 
-    } elseif($Tool -and $Help){ # Print help for tool
+    ################################################################################################
+    #region Toolkit help and tool help
+    ################################################################################################
+    # Print help for tool
+    elseif($Tool -and $Help){ 
         $AvailableTools | where{$_.Name -eq $Tool} | ForEach-Object{
-            Write-Host "[$($_.Title)]`n" -ForegroundColor Yellow -NoNewLine
+            Write-Host "[$($_.Title)]" -ForegroundColor Yellow -NoNewLine
 
             # Description
             Write-Host "`n - $($_.Description)" -ForegroundColor Yellow; $_.DescriptionAdditional | foreach {Write-Host " - $_" -ForegroundColor Yellow}
             # Prerequisites
-            Write-Host "`nPrerequisites" -ForegroundColor Yellow; $_.Prerequisites | foreach {Write-Host " - $_" -ForegroundColor Yellow}
+            Write-Host "`n[Prerequisites]" -ForegroundColor Yellow; $_.Prerequisites | foreach {Write-Host " - $_" -ForegroundColor Yellow}
             # Variables
-            Write-Host "`nVariables" -ForegroundColor Yellow; $_.RequiredVars | foreach {Write-Host " - $_" -ForegroundColor Yellow}; Write-Host "`n"
-            exit
+            Write-Host "`n[Required Variables]" -ForegroundColor Yellow; $_.RequiredVars | foreach {Write-Host " - $_" -ForegroundColor Yellow}
+            if($_.OptionalVars){
+                Write-Host "`n[Optional Variables]" -ForegroundColor Yellow; $_.OptionalVars | foreach {Write-Host " - $_" -ForegroundColor Yellow}
+            }
+            Write-Host "`n"; exit
         }
-
+    } 
     # Print Tool Menu and exit script if no tool was provided
-    } elseif(-not $Tool) {
+    elseif(-not $Tool) {
         Write-Host "$($ToolkitMenu.Description)`n`n$($ToolkitMenu.Usage)`n"
 
         # Tools
@@ -111,35 +124,51 @@ try {
         Write-Host $($AvailableConfigValues | Format-Table @{e=' ';w=2}, @{e={"$($_.Name)"};w=30},Description -HideTableHeaders | Out-String) -NoNewLine
 
         # Examples
-        Write-Host "Examples"; $ToolKitMenu.Examples | foreach {Write-Host "$_"}; Write-Host "`n"
-
-        exit
+        Write-Host "Examples"; $ToolKitMenu.Examples | foreach {Write-Host "$_"}; Write-Host "`n"; exit
     }
+    #endregion
+    ################################################################################################
 
-    # Execute pretasks
+    ################################################################################################
+    #region Import source scripts and execute pretasks
+    ################################################################################################
+    . (Join-Path $PSScriptRoot $ToolBoxConfig.Classes -ErrorAction Stop)
+    . (Join-Path $PSScriptRoot $ToolBoxConfig.Variables.Main -ErrorAction Stop)
     . (Join-Path $ToolBoxConfig.Scripts "main_pretasks.ps1" -ErrorAction Stop)
+    #endregion
+    ################################################################################################
 
-    # Load tool config and script based on selection
+    ################################################################################################
+    #region Load tool config and script based on selection
+    ################################################################################################
     $Global:ToolCurrent = $AvailableTools | where{$_.Name -eq $Tool}
     $ChoiceContinue = Assert-ToolPrompt `
         -Title $ToolCurrent.Title `
         -Description $ToolCurrent.Description `
         -NonInteractive $NonInteractive
-    if($ChoiceContinue){. (Join-Path $ToolBoxConfig.Tools "$($ToolCurrent.Script)" -ErrorAction Stop)}
+    if($NonInteractive){ 
+        Write-Host "$($Strings.NonInteractiveTool -f $Tool)" -ForegroundColor Yellow 
+        Test-DefinedRequiredVariables $ToolCurrent.RequiredVars # test if the required variables have values
+    }
+    if($ChoiceContinue){ . (Join-Path $ToolBoxConfig.Tools "$($ToolCurrent.Script)" -ErrorAction Stop) }
+    #endregion
+    ################################################################################################
     
 }
 catch {
-    Write-Host $_ -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor Red
-    $LoggerMain.Exception($_)
-    
+    if(-not $ToolBoxConfig.Debug){ 
+        Write-Host  "$($Exceptions.General -f $($ToolBoxConfig.LogFiles.Main))" -ForegroundColor Red
+    } else {
+        $LoggerMain.Exception($_)
+    }
+
     if($ToolBoxConfig.DesktopMode -and (Get-Command 'Read-PromptYesNo' -ErrorAction SilentlyContinue)){
         $ChoiceContext = Read-HostChoice `
             -Message "Open toolkit log?" `
             -HelpText "Open log","Exit script" `
             -Default 1
-        if($PromptOpenLog){
-            . (Join-Path $ToolBoxConfig.LogDirectory $ToolBoxConfig.LogFiles.Main)
-        }
+        if($PromptOpenLog){ . (Join-Path $ToolBoxConfig.LogDirectory $ToolBoxConfig.LogFiles.Main) }
     }
 }
+#endregion
+################################################################################################
