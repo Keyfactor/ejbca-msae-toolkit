@@ -34,8 +34,8 @@ try {
         NonInteractive = $NonInteractive
         DesktopMode = $false
         Classes = "bin\classes\main.ps1"
-        #Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
-        #ParentDomain = (Get-ADDomain -Current LocalComputer).Forest
+        Domain = $null
+        ParentDomain = $null
         Variables = @{
             Main = "bin\variables\main.ps1"
             Validation = "bin\variables\validation.ps1"
@@ -170,12 +170,8 @@ try {
     
 }
 catch {
-    if(-not $ToolBoxConfig.Debug){ 
-        Write-Host  "$($Exceptions.General -f $($ToolBoxConfig.LogFiles.Main))" -ForegroundColor Red
-    } else {
-        $LoggerMain.Exception($_)
-    }
-
+    $LoggerMain.Exception($_)
+    if(-not $ToolBoxConfig.Debug){ Write-Host  "$($Exceptions.General -f $($ToolBoxConfig.LogFiles.Main))" -ForegroundColor Red }
     if($ToolBoxConfig.DesktopMode -and (Get-Command 'Read-PromptYesNo' -ErrorAction SilentlyContinue)){
         $ChoiceContext = Read-HostChoice `
             -Message "Open toolkit log?" `

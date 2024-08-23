@@ -89,6 +89,10 @@ Get-ChildItem $ToolBoxConfig.Functions -Filter *.ps1 | ForEach-Object {. (Join-P
 
 # get os version
 Set-OperatingSystem | Out-Null
+if($IsWindows){
+    $ToolBoxConfig.Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
+    $ToolBoxConfig.ParentDomain = (Get-ADDomain -Current LocalComputer).Forest
+}
 
 # modules
 if($IsWindows){
