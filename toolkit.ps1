@@ -33,10 +33,9 @@ try {
         Debug = %{if($MyInvocation.BoundParameters.Keys -contains "Debug"){$true}else{$false}}
         NonInteractive = $NonInteractive
         DesktopMode = $false
-        OS = $env:OS 
         Classes = "bin\classes\main.ps1"
-        Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
-        ParentDomain = (Get-ADDomain -Current LocalComputer).Forest
+        #Domain = (Get-ADDomain -Current LocalComputer).DNSRoot
+        #ParentDomain = (Get-ADDomain -Current LocalComputer).Forest
         Variables = @{
             Main = "bin\variables\main.ps1"
             Validation = "bin\variables\validation.ps1"
@@ -62,6 +61,15 @@ try {
         )
         KeytabEncryptionTypes = "AES256"
     }
+    #endregion
+    ################################################################################################
+
+    ################################################################################################
+    #region Import source scripts and execute pretasks
+    ################################################################################################
+    . (Join-Path $PSScriptRoot "bin\classes\main.ps1" -ErrorAction Stop)
+    . (Join-Path $PSScriptRoot "bin\variables\main.ps1" -ErrorAction Stop)
+    . (Join-Path $PSScriptRoot "bin\scripts\main_pretasks.ps1" -ErrorAction Stop)
     #endregion
     ################################################################################################
     
@@ -107,34 +115,40 @@ try {
     elseif(-not $Tool) {
         Write-Host "$($ToolkitMenu.Description)`n`n$($ToolkitMenu.Usage)`n"
 
-        # Tools
-        Write-Host "Tools" -NoNewLine
-        Write-Host $($AvailableTools.where({$_.Type -eq "tool"}) | Format-Table @{e=' ';w=2}, @{e='Name';w=30},Description -HideTableHeaders | Out-String) -NoNewLine
+        # Windows
+        if($IsWindows){
+            # Tools
+            Write-Host "Tools" -NoNewLine
+            Write-Host $($AvailableTools.where({$_.Type -eq "tool" -and $_.Windows}) | Format-Table @{e=' ';w=2}, @{e='Name';w=30},Description -HideTableHeaders | Out-String) -NoNewLine
 
-        # Utilities
-        Write-Host "Utilities"  -NoNewLine
-        Write-Host $($AvailableTools.where({$_.Type -eq "utility"}) | Format-Table @{e=' ';w=2}, @{e='Name';w=30},Description -HideTableHeaders | Out-String) -NoNewLine
+            # Utilities
+            Write-Host "Utilities"  -NoNewLine
+            Write-Host $($AvailableTools.where({$_.Type -eq "utility" -and $_.Windows}) | Format-Table @{e=' ';w=2}, @{e='Name';w=30},Description -HideTableHeaders | Out-String) -NoNewLine
+        } else {
+
+            # Tools
+            Write-Host "Tools" -NoNewLine
+            Write-Host $($AvailableTools.where({$_.Windows -eq $false}) | Format-Table @{e=' ';w=2}, @{e='Name';w=30},Description -HideTableHeaders | Out-String) -NoNewLine
+        }
 
         # Options
         Write-Host "Options"  -NoNewLine
         Write-Host $($ToolkitMenuOptions | Format-Table @{e=' ';w=2}, @{e={"-$($_.Name)"};w=30},Description -HideTableHeaders | Out-String) -NoNewLine
 
-         # Configuration values
-        Write-Host "Configuration File`n  The following values can be prepopulated in the config file in the section name from the description."; 
-        Write-Host $($AvailableConfigValues | Format-Table @{e=' ';w=2}, @{e={"$($_.Name)"};w=30},Description -HideTableHeaders | Out-String) -NoNewLine
-
         # Examples
-        Write-Host "Examples"; $ToolKitMenu.Examples | foreach {Write-Host "$_"}; Write-Host "`n"; exit
+        Write-Host "Examples"; $ToolKitMenu.Examples | foreach {Write-Host "$_"}; Write-Host "`n"
+
+        # Configuration values
+        Write-Host "Configuration File`n  The following values can be prepopulated in the config file in the section name from the description."
+        Write-Host $($AvailableConfigValues | Format-Table @{e=' ';w=2}, @{e={"$($_.Name)"};w=30},Description -HideTableHeaders | Out-String) -NoNewLine; exit
     }
     #endregion
     ################################################################################################
 
     ################################################################################################
-    #region Import source scripts and execute pretasks
+    #region Run pretasks
     ################################################################################################
-    . (Join-Path $PSScriptRoot $ToolBoxConfig.Classes -ErrorAction Stop)
-    . (Join-Path $PSScriptRoot $ToolBoxConfig.Variables.Main -ErrorAction Stop)
-    . (Join-Path $ToolBoxConfig.Scripts "main_pretasks.ps1" -ErrorAction Stop)
+    . (Join-Path $PSScriptRoot "bin\scripts\main_pretasks.ps1" -ErrorAction Stop)
     #endregion
     ################################################################################################
 

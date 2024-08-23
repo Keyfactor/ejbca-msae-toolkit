@@ -54,6 +54,7 @@ $Global:AvailableTools = @(
         Title = "[Create MSAE Service Account]"
         Type = "utility"
         Name = "acctcreate"
+        Windows = $true
         Script = "tool_acct_create.ps1"
         Description = "Create and configure a new service account to use in an MSAE integration."
         DescriptionAdditional= @(
@@ -77,6 +78,7 @@ $Global:AvailableTools = @(
         Title = "Create Kerberos Files"
         Type = "utility"
         Name = "kerbcreate"
+        Windows = $true
         Script = "tool_kerberos.ps1"
         Description = "Generate Keytab and Krb5.conf files based Active Directory, Policy Server, and Service Account values."
         DescriptionAdditional = @(
@@ -97,6 +99,7 @@ $Global:AvailableTools = @(
         Title = "Dump Keytab"
         Type = "utility"
         Name = "kerbdump"
+        Windows = $true
         Script = "tool_kerberos.ps1"
         Description = "Dump the contents of an existing keytab  and krb5 conf file."
         DescriptionAdditional = @()
@@ -113,6 +116,7 @@ $Global:AvailableTools = @(
         Title = "Create Certificate Template"
         Type = "utility"
         Name = "tempcreate"
+        Windows = $true
         Script = "tool_cert_template.ps1"
         Description = "Clone an existing template or create a new certificate template based on a Computer or User context."
         DescriptionAdditional = @(
@@ -136,6 +140,7 @@ $Global:AvailableTools = @(
         Title = "Modify Certificate Template"
         Type = "utility"
         Name = "tempperms"
+        Windows = $true
         Script = "tool_cert_template.ps1"
         Description =  "Grants autoenrollment permissions to a defined security group on an existing certificate template."
         DescriptionAdditional = @()
@@ -152,6 +157,7 @@ $Global:AvailableTools = @(
         Title = "Configuration Validator"
         Type = "tool"
         Name = "validate"
+        Windows = $true
         Script = "tool_validator.ps1"
         Description = "Validate an existing, or partially configured, MSAE integration."
         DescriptionAdditional = @(
@@ -176,6 +182,22 @@ $Global:AvailableTools = @(
             "TemplateGroup"
         )
     }
+    # [PSCustomObject]@{
+    #     Title = "Log Analyzer"
+    #     Type = "utility"
+    #     Name = "analyzer"
+    #     Windows = $false
+    #     Script = "tool_analyzer.ps1"
+    #     Description = "Tail an EJBCA server.log file, or parse a static one, to extract and translate messages specific to Microsoft Autoenrollment."
+    #     DescriptionAdditional = @()
+    #     Prerequisites = @(
+    #         "Service Account",
+    #         "Keytab and Krb5 Conf Files",
+    #         "Certificate Template configured for MSAE"
+    #     )
+    #     RequiredVars = @()
+    # }
+
     # [PSCustomObject]@{
     #     Title = "Configuration Wizard"
     #     Type = "tool"

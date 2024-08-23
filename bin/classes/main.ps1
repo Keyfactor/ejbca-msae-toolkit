@@ -179,7 +179,7 @@ class WriteLog {
 
     # Create log directory
     hidden CreateLogDir() {
-        New-Item $this.LogDirectory -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+       if(-not (Test-Path $this.LogDirectory)){ New-Item $this.LogDirectory -ItemType Directory -ErrorAction SilentlyContinue | Out-Null }
     }
 
     # Write to log

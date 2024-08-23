@@ -87,11 +87,19 @@ if($FilesDirectory){
 $LoggerMain.Debug("Importing functions...")
 Get-ChildItem $ToolBoxConfig.Functions -Filter *.ps1 | ForEach-Object {. (Join-Path $ToolBoxConfig.Functions $_.Name)} | Out-Null
 
+# get os version
+Set-OperatingSystem | Out-Null
+
 # modules
-$LoggerMain.Debug("Importing required Builtin Powershell modules.")
-foreach($Module in $ToolBoxConfig.Modules){
-    $ImportResult = Import-Module -Name $Module -ErrorAction Stop -PassThru
-    $LoggerMain.Debug("Successfully imported module $($ImportResult.Name)")
+if($IsWindows){
+    $LoggerMain.Debug("Importing required Builtin Powershell modules.")
+    foreach($Module in $ToolBoxConfig.Modules){
+        $ImportResult = Import-Module -Name $Module -ErrorAction Stop -PassThru
+        $LoggerMain.Debug("Successfully imported module $($ImportResult.Name)")
+    }
+} else {
+    $LoggerMain.Debug("Skipping Builtin Powershell module import because the operating system is not Windows.")
 }
+
 #endregion
 ################################################################################################

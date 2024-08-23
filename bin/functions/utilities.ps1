@@ -384,6 +384,34 @@ function Read-HostPromptMultiSelection {
     }
 }
 
+function Set-OperatingSystem {
+    <#
+    .Synopsis
+        Sets operating system boolean values for PS Desktop
+    .Description
+        Switches the [Environment]::OSVersion.Platform variable and sets variables based on the match string value.
+        These variables match the variables that are native in PS Core.
+    .Example
+        Set-OperationSystem
+    #>
+    process {
+        switch ([Environment]::OSVersion.Platform) {
+            "Win32NT"  { 
+                Set-Variable -Scope Global -Name IsWindows -Value $True -Force 
+                $LoggerFunctions.Info("Operating system is Windows.")
+            }
+            "Linux"    { 
+                Set-Variable -Scope Global -Name IsLinux -Value $True -Force
+                $LoggerFunctions.Info("Operating system is Linux-based.")
+            }
+            "Unix"     {
+                Set-Variable -Scope Global -Name IsMacOs -Value $True -Force
+                $LoggerFunctions.Info("Operating system is Unix-based.")   
+            }
+        }
+    }
+}
+
 function Test-DefinedRequiredVariables {
      <#
     .Synopsis
