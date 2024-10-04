@@ -1,4 +1,4 @@
-# Getting Started with the EJBCA Microsoft Auto-Enrollment (MSAE) Tool Kit
+# Getting Started with the EJBCA MSAE Tool Kit
 To get started with the EJBCA Microsoft Auto-Enrollment (MSAE) Tool Kit, follow these steps:
 1. Open a Powershell console as Admin on a Windows Server (Domain Controller or Member Server)
 
