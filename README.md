@@ -26,9 +26,7 @@ The purpose of this toolkit is to provide users with the ability to properly val
 <!--- If instructions are very long, create one or more files, e.g. "/docs/getting-started.md" and refer to them from this section. 
 --->
 
-<!--- Example: 
-To get started with the [tool name], see [Getting Started](docs/getting-started.md). 
---->
+To get started with EJBCA Microsoft Auto-Enrollment (MSAE) Tool Kit, see [Getting Started](docs/getting-started.md).
 
 ### System Requirements
 
