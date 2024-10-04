@@ -32,12 +32,10 @@ To get started with the [tool name], see [Getting Started](docs/getting-started.
 
 ### System Requirements
 
-### PowerShell Version
-
+#### PowerShell Version
 The current version of this tool has only been tested on PowerShell 5.1 and 7.1.
 
-### Environment
-
+#### Environment
 * User with the following administrative access:
   * Create/modify Service Accounts
   * Create/modify Certificate Templates
